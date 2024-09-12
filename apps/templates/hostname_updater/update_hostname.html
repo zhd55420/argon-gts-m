@@ -1,0 +1,92 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %} Update Hostname {% endblock title %}
+{% load form_tags %} 
+<!-- Specific CSS goes HERE -->
+{% block stylesheets %}
+{% endblock stylesheets %}
+
+{% block content %}
+    <!-- Header -->
+    <div class="header bg-primary pb-6">
+        <div class="container-fluid">
+            <div class="header-body">
+                <div class="row align-items-center py-4">
+                    <div class="col-lg-6 col-7">
+                        <h6 class="h2 text-white d-inline-block mb-0">Update Hostname</h6>
+                        <nav aria-label="breadcrumb" class="d-none d-md-inline-block ml-md-4">
+                            <ol class="breadcrumb breadcrumb-links breadcrumb-dark">
+                                <li class="breadcrumb-item"><a href="http://localhost:8000/"><i class="fas fa-home"></i></a></li>
+                                <li class="breadcrumb-item"><a href="#">Maintenance Work</a></li>
+                                <li class="breadcrumb-item active" aria-current="page">Update Hostname</li>
+                            </ol>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page content -->
+    <div class="container-fluid mt--6">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 col-md-10">
+                <div class="card">
+                    <div class="card-header bg-transparent">
+                        <h3 class="mb-0">Update Hostname</h3>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+                            <div class="form-group">
+                                <label for="single_ip_address">Single IP Address:</label>
+                                {{ form.single_ip_address|add_class:"form-control" }}
+                            </div>
+                            <div class="form-group">
+                                <label for="single_new_hostname">Single New Hostname:</label>
+                                {{ form.single_new_hostname|add_class:"form-control" }}
+                            </div>
+                            <div class="form-group">
+                                <label for="bulk_input">Bulk Input:</label>
+                                {{ form.bulk_input|add_class:"form-control" }}
+                                <p class="text-muted">Note: For bulk input, each line should be in the format: <code>IP, New Hostname</code></p>
+                            </div>
+                            <div class="form-group">
+                                <label for="zabbix_server">Zabbix Server:</label>
+                                {{ form.zabbix_server|add_class:"form-control" }}
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Update</button>
+                        </form>
+
+                        {% if success_messages %}
+                        <div class="alert alert-success mt-4">
+                            <h4 class="alert-heading">Success</h4>
+                            <ul class="mb-0">
+                                {% for message in success_messages %}
+                                <li>{{ message }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+
+                        {% if error_messages %}
+                        <div class="alert alert-danger mt-4">
+                            <h4 class="alert-heading">Errors</h4>
+                            <ul class="mb-0">
+                                {% for message in error_messages %}
+                                <li>{{ message }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+    </div>
+{% endblock content %}
+
+<!-- Specific JS goes HERE --> 
+{% block javascripts %}
+{% endblock javascripts %}

@@ -1,0 +1,100 @@
+brands:
+  opt:
+    Fili TV:
+      release_id: '31026942'
+    Fili TV Mobile:
+      release_id: '31026989'
+    WAKA TV:
+      release_id: '31025926'
+    WAKA TV Mobile:
+      release_id: '31026773'
+    SAPA TV:
+      release_id: '31027715'
+    SAPA TV Mobile:
+      release_id: '31027704'
+    AFRO TV:
+      release_id: '31035815'
+    AFRO TV Mobile:
+      release_id: '31035816'
+  spc:
+    BTV:
+      release_id: 'btvbox'
+    BTV APP:
+      release_id: '10000203'
+    BTV APP MOBILE:
+      release_id: '10000204'
+    BTV MOBILE:
+      release_id: 'mobile_btv'
+    BTV PRO:
+      release_id: 'btvpro'
+    BTVE:
+      release_id: 'btve'
+    BlueTV:
+      release_id: 'bluetv'
+    BlueTV Mobile:
+      release_id: 'pmbluetv'
+    Boto TV:
+      release_id: '31026826'
+    Boto TV Mobile:
+      release_id: '31026827'
+    Duna TV:
+      release_id: '31026931'
+    Duna TV Mobile:
+      release_id: '31026932'
+    PIX TV:
+      release_id: '31002406'
+    PIX TV Mobile:
+      release_id: '31002418'
+    PLUS TV:
+      release_id: '31002037'
+    PLUS TV Mobile:
+      release_id: '31002263'
+    Red Mobile:
+      release_id: 'mobile_redplay'
+    RedLITE TV:
+      release_id: 'redlite'
+    RedOne:
+      release_id: 'redone'
+    RedOne Mobile:
+      release_id: 'rpm'
+    RedPlay Live:
+      release_id: 'redplaybox'
+    RedPlay Live Mobile:
+      release_id: 'rpm'
+    RedPlay TV:
+      release_id: 'tve_redplay'
+    RedPro TV:
+      release_id: 'redpro'
+    Redtvhome:
+      release_id: 'redhome_box'
+    Redtvhome Mobile:
+      release_id: '10000193'
+    Redtvstick:
+      release_id: '10000177'
+    Redtvstick Mobile:
+      release_id: '10000178'
+    TVE:
+      release_id: 'tve_web'
+    TVE BOX:
+      release_id: 'tve_box'
+    TVE LA:
+      release_id: 'tve_es'
+    TVE LA Mobile:
+      release_id: 'pmtvees'
+    TVE Mobile:
+      release_id: 'mobile_tveweb'
+Trackers:
+  BLUE:
+    server_code: 'a14'
+  BTV:
+    server_code: 'a11'
+  BTVE:
+    server_code: 'a16'
+  MIX:
+    server_code: 'a20'
+  RED:
+    server_code: 'a13'
+  SUPER:
+    server_code: 'a15'
+  TVE:
+    server_code: 'a12'

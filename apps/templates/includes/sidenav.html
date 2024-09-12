@@ -1,0 +1,132 @@
+<nav class="sidenav navbar navbar-vertical fixed-left navbar-expand-xs navbar-light bg-white" id="sidenav-main">
+  <div class="scrollbar-inner">
+    <!-- Brand -->
+    <div class="sidenav-header align-items-center">
+      <a class="navbar-brand" href="/">
+        <img src="/static/assets/img/brand/blue.png" class="navbar-brand-img" alt="Argon Design - Jinja Template Logo.">
+      </a>
+    </div>
+    <div class="navbar-inner">
+      <div class="collapse navbar-collapse" id="sidenav-collapse-main">
+        <ul class="navbar-nav">
+          <!-- Dashboard -->
+          <li class="nav-item">
+            <a class="nav-link" href="/">
+              <i class="ni ni-tv-2 text-primary"></i>
+              <span class="nav-link-text">Dashboard</span>
+            </a>
+          </li>
+
+          <!-- Maintenance Section -->
+          <li class="nav-item">
+            <a class="nav-link" href="#navbar-maintenance" data-toggle="collapse" role="button" aria-expanded="false" aria-controls="navbar-maintenance">
+              <i class="ni ni-settings-gear-65 text-primary"></i>
+              <span class="nav-link-text">运维工作</span>
+            </a>
+            <div class="collapse" id="navbar-maintenance">
+              <ul class="nav nav-sm flex-column">
+                <li class="nav-item">
+                  <a href="{% url 'manage_resources' %}" class="nav-link">管理资源</a>
+                </li>
+                <li class="nav-item">
+                  <a href="{% url 'update_hostname' %}" class="nav-link">更新主机名</a>
+                </li>
+                <li class="nav-item">
+                  <a href="{% url 'zabbix_delete' %}" class="nav-link">删除 Zabbix 项目</a>
+                </li>
+                <li class="nav-item">
+                  <a href="{% url 'select_zabbix_telegraf_config' %}" class="nav-link">更新服务器配置</a>
+                </li>
+              </ul>
+            </div>
+          </li>
+
+          <!-- Zabbix Section: 直接跳转到外部页面 -->
+          <li class="nav-item">
+            <a class="nav-link" href="#navbar-zabbix" data-toggle="collapse" role="button" aria-expanded="false" aria-controls="navbar-zabbix">
+              <i class="ni ni-chart-bar-32 text-info"></i>
+              <span class="nav-link-text">Zabbix</span>
+            </a>
+            <div class="collapse" id="navbar-zabbix">
+              <ul class="nav nav-sm flex-column">
+                <li class="nav-item">
+                  <a href="http://51.81.49.118:8080/zabbix.php?action=dashboard.view" target="_blank" class="nav-link">Live Zabbix Server</a>
+                </li>
+                <li class="nav-item">
+                  <a href="http://51.81.49.196:8080/zabbix.php?action=dashboard.view" target="_blank" class="nav-link">Vod Zabbix Server</a>
+                </li>
+                <li class="nav-item">
+                  <a href="http://15.204.208.231/zabbix/zabbix.php?action=dashboard.view" target="_blank" class="nav-link">Goose Zabbix Server</a>
+                </li>
+              </ul>
+            </div>
+          </li>
+
+          <!-- Grafana Section: 直接跳转到外部页面 -->
+          <li class="nav-item">
+            <a class="nav-link" href="#navbar-grafana" data-toggle="collapse" role="button" aria-expanded="false" aria-controls="navbar-grafana">
+              <i class="ni ni-tv-2 text-orange"></i>
+              <span class="nav-link-text">Grafana</span>
+            </a>
+            <div class="collapse" id="navbar-grafana">
+              <ul class="nav nav-sm flex-column">
+                <li class="nav-item">
+                  <a href="http://metric01.b2030.host:3000/" target="_blank" class="nav-link">Livetv Grafana</a>
+                </li>
+                <li class="nav-item">
+                  <a href="http://metric02.b2030.host:3000/" target="_blank" class="nav-link">Vod Grafana</a>
+                </li>
+                <li class="nav-item">
+                  <a href="http://15.204.241.90:3000/" target="_blank" class="nav-link">Goose Grafana</a>
+                </li>
+              </ul>
+            </div>
+          </li>
+
+          <!-- Existing sections -->
+          <li class="nav-item">
+            <a class="nav-link" href="/login.html">
+              <i class="ni ni-key-25 text-info"></i>
+              <span class="nav-link-text">Login (template)</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/register.html">
+              <i class="ni ni-circle-08 text-pink"></i>
+              <span class="nav-link-text">Register (template)</span>
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'logout' %}">
+              <i class="ni ni-user-run text-red"></i>
+              <span class="nav-link-text">Logout</span>
+            </a>
+          </li>
+        </ul>
+
+        <!-- Divider -->
+        <hr class="my-3">
+
+        <!-- Resources Section -->
+        <h6 class="navbar-heading p-0 text-muted">
+          <span class="docs-normal">Resources</span>
+        </h6>
+        <ul class="navbar-nav mb-md-3">
+          <li class="nav-item">
+            <a class="nav-link" target="_blank" href="https://appseed.us/admin-dashboards/django-dashboard-argon">
+              <i class="ni ni-archive-2"></i>
+              <span class="nav-link-text">Product Page</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" target="_blank" href="https://appseed.us/admin-dashboards/django-dashboard-argon-pro">
+              <i class="ni ni-spaceship text-red"></i>
+              <span class="nav-link-text text-red">PRO Version</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</nav>

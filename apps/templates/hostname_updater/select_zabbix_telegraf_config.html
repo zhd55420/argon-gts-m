@@ -1,0 +1,95 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %} Select Zabbix and Telegraf Config {% endblock title %}
+{% load form_tags %} 
+<!-- Specific CSS goes HERE -->
+{% block stylesheets %}
+{% endblock stylesheets %}
+
+{% block content %}
+    <!-- Header -->
+    <div class="header bg-primary pb-6">
+        <div class="container-fluid">
+            <div class="header-body">
+                <div class="row align-items-center py-4">
+                    <div class="col-lg-6 col-7">
+                        <h6 class="h2 text-white d-inline-block mb-0">Select Zabbix and Telegraf Config</h6>
+                        <nav aria-label="breadcrumb" class="d-none d-md-inline-block ml-md-4">
+                            <ol class="breadcrumb breadcrumb-links breadcrumb-dark">
+                                <li class="breadcrumb-item"><a href="http://localhost:8000/"><i class="fas fa-home"></i></a></li>
+                                <li class="breadcrumb-item"><a href="#">Maintenance Work</a></li>
+                                <li class="breadcrumb-item active" aria-current="page">Select Config</li>
+                            </ol>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page content -->
+    <div class="container-fluid mt--6">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 col-md-10">
+                <div class="card">
+                    <div class="card-header bg-transparent">
+                        <h3 class="mb-0">Select Zabbix and Telegraf Config</h3>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+                            <!-- IP Address and Hostname (Bulk Input) -->
+                            <div class="form-group">
+                                <label for="bulk_input">Bulk Input:</label>
+                                <textarea id="bulk_input" name="bulk_input" class="form-control" rows="5" required></textarea>
+                                <p class="text-muted">For bulk input, each line should be in the format: <code>IP, New Hostname</code></p>
+                            </div>
+                            <!-- Zabbix and Telegraf Config Selection -->
+                            <div class="form-group">
+                                <label for="zabbix_config">Select Zabbix and Telegraf Config:</label>
+                                <select id="zabbix_config" name="zabbix_config" class="form-control" required>
+                                    <option value="livetv">LiveTV</option>
+                                    <option value="vod">VOD</option>
+                                    <option value="goose">Goose</option>
+                                </select>
+                            </div>
+                            <!-- InfluxDB Database -->
+                            <div class="form-group">
+                                <label for="influxdb_database">InfluxDB Database:</label>
+                                <input type="text" id="influxdb_database" name="influxdb_database" class="form-control" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Update Configuration</button>
+                        </form>
+
+                        {% if success_messages %}
+                        <div class="alert alert-success mt-4">
+                            <h4 class="alert-heading">Success</h4>
+                            <ul class="mb-0">
+                                {% for message in success_messages %}
+                                <li>{{ message }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+
+                        {% if error_messages %}
+                        <div class="alert alert-danger mt-4">
+                            <h4 class="alert-heading">Errors</h4>
+                            <ul class="mb-0">
+                                {% for message in error_messages %}
+                                <li>{{ message }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+    </div>
+{% endblock content %}
+
+<!-- Specific JS goes HERE --> 
+{% block javascripts %}
+{% endblock javascripts %}

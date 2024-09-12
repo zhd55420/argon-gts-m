@@ -1,0 +1,161 @@
+{% extends "layouts/base.html" %}
+{% debug %}
+{% block content %}
+{% load form_tags %}    
+    <div class="header bg-primary pb-6">
+        <div class="container-fluid">
+            <div class="header-body">
+                <div class="row align-items-center py-4">
+                    <div class="col-lg-6 col-7">
+                        <h6 class="h2 text-white d-inline-block mb-0">Manage Resources</h6>
+                        <nav aria-label="breadcrumb" class="d-none d-md-inline-block ml-md-4">
+                            <ol class="breadcrumb breadcrumb-links breadcrumb-dark">
+                                <li class="breadcrumb-item"><a href="http://localhost:8000/"><i class="fas fa-home"></i></a></li>
+                                <li class="breadcrumb-item"><a href="#">Maintenance Work</a></li>
+                                <li class="breadcrumb-item active" aria-current="page">Manage Resources</li>
+                            </ol>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<div class="container-fluid mt--6">
+  <div class="row">
+    <!-- 左侧管理资源组 -->
+    <div class="col-md-4">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h4 class="mb-0">Manage Resource Groups</h4>
+        </div>
+        <div class="card-body">
+          <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+              <label for="group_action">Action</label>
+              {{ group_form.action|add_class:"form-control" }}
+            </div>
+            <div class="form-group">
+              <label for="group_name">Resource Group Name</label>
+              {{ group_form.group_name|add_class:"form-control" }}
+            </div>
+            <button type="submit" name="submit_group" class="btn btn-primary btn-block">Submit</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右侧管理资源组中的 PRT 和 Tracker -->
+    <div class="col-md-8">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h4 class="mb-0">Select Resource Group</h4>
+        </div>
+        <div class="card-body">
+          <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+              <label for="group_name">Resource Group</label>
+              <select name="group_name" class="form-control" onchange="this.form.submit()">
+                <option value="">-- Select a Resource Group --</option>
+                {% for name in resource_groups.keys %}
+                  <option value="{{ name }}" {% if selected_group == name %}selected{% endif %}>{{ name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <input type="hidden" name="select_group" value="1">
+          </form>
+        </div>
+      </div>
+
+      {% if selected_group %}
+        <div class="card mb-4">
+          <div class="card-header">
+            <h4 class="mb-0">PRTs in {{ selected_group }}</h4>
+          </div>
+          <div class="card-body">
+            <ul class="list-group">
+              {% for prt in prts %}
+                <li class="list-group-item">{{ prt }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="card-header">
+            <h4 class="mb-0">Trackers in {{ selected_group }}</h4>
+          </div>
+          <div class="card-body">
+            <ul class="list-group">
+              {% for tracker in trackers %}
+                <li class="list-group-item">{{ tracker }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="card-header">
+            <h4 class="mb-0">Add/Delete PRT</h4>
+          </div>
+          <div class="card-body">
+            <form method="post">
+              {% csrf_token %}
+              <div class="form-group">
+                <label for="group_name">Resource Group Name</label>
+                {{ prt_form.group_name|add_class:"form-control" }}
+              </div>
+              <div class="form-group">
+                <label for="prt_action">Action</label>
+                {{ prt_form.action|add_class:"form-control" }}
+              </div>
+              <div class="form-group">
+                <label for="prt_value">PRT Server ID</label>
+                {{ prt_form.prt_value|add_class:"form-control" }}
+              </div>
+              <button type="submit" name="submit_prt" class="btn btn-success btn-block">Submit PRT</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="card-header">
+            <h4 class="mb-0">Add/Delete Tracker</h4>
+          </div>
+          <div class="card-body">
+            <form method="post">
+              {% csrf_token %}
+              <div class="form-group">
+                <label for="group_name">Resource Group Name</label>
+                {{ prt_form.group_name|add_class:"form-control" }}
+              </div>
+              <div class="form-group">
+                <label for="tracker_action">Action</label>
+                {{ tracker_form.action|add_class:"form-control" }}
+              </div>
+              <div class="form-group">
+                <label for="tracker_value">Tracker Server ID</label>
+                {{ tracker_form.tracker_value|add_class:"form-control" }}
+              </div>
+              <button type="submit" name="submit_tracker" class="btn btn-success btn-block">Submit Tracker</button>
+            </form>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if messages %}
+    <div class="mt-4">
+      <h3>Messages</h3>
+      <ul class="list-group">
+        {% for message in messages %}
+          <li class="list-group-item">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

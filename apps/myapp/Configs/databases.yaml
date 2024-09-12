@@ -1,0 +1,5 @@
+databases:
+  optnet:
+    url: "15.204.133.239"
+  goose:
+    url: "15.204.241.90"
