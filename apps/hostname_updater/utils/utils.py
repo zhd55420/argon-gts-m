@@ -111,6 +111,26 @@ def update_telegraf_zabbix_config(ip_address, new_hostname, zabbix_server, zabbi
         if stderr_text:
             raise Exception(f"Error modifying Zabbix Agent config: {stderr_text}")
 
+        # 添加 UserParameter 到 Zabbix 配置
+        add_user_parameter = 'echo \'UserParameter=ifname, /bin/bash /etc/zabbix/discover_network_interfaces.sh\' | sudo tee -a /etc/zabbix/zabbix_agentd.conf'
+        stdin, stdout, stderr = ssh.exec_command(add_user_parameter)
+        stderr_text = stderr.read().decode()
+        if stderr_text:
+            raise Exception(f"Error adding UserParameter to Zabbix Agent config: {stderr_text}")
+
+        # 上传 discover_network_interfaces.sh 脚本到目标服务器
+        sftp = ssh.open_sftp()
+        local_script_path = '/home/gtsuser/remote_script/discover_network_interfaces.sh'  # 本地脚本的路径
+        remote_script_path = '/etc/zabbix/discover_network_interfaces.sh'
+        sftp.put(local_script_path, remote_script_path)
+        logger.info(f"Uploaded discover_network_interfaces.sh to {ip_address}:{remote_script_path}")
+
+        # 设置 discover_network_interfaces.sh 文件权限为可执行
+        stdin, stdout, stderr = ssh.exec_command(f'sudo chmod +x {remote_script_path}')
+        stderr_text = stderr.read().decode()
+        if stderr_text:
+            raise Exception(f"Error setting executable permission on {remote_script_path}: {stderr_text}")
+
         # 修改 Telegraf 配置的 [[outputs.influxdb]] 部分
         update_telegraf_command = f'sudo sed -i \'/[[outputs.influxdb]]/,/^$/{{s/urls = \\[.*\\]/urls = {influxdb_urls}/;s/username = .*/username = "{influxdb_username}"/;s/password = .*/password = "{influxdb_password}"/;s/database = .*/database = "{influxdb_database}"/}}\' /etc/telegraf/telegraf.conf'
         stdin, stdout, stderr = ssh.exec_command(update_telegraf_command)
