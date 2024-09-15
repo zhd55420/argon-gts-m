@@ -11,7 +11,7 @@ class HostnameUpdateForm(forms.Form):
     )
     bulk_input = forms.CharField(
         required=False,
-        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 5})
+        widget=forms.Textarea(attrs={'class': 'form-control', })
     )
     zabbix_server = forms.ChoiceField(
         choices=[],  # 这里不需要默认值，动态生成
@@ -40,7 +40,7 @@ class PRTForm(forms.Form):
     action = forms.ChoiceField(choices=[('add', 'Add'), ('delete', 'Delete')], label='Action', required=True)
     group_name = forms.CharField(label='Resource Group Name', required=True,
                                  widget=forms.TextInput(attrs={'readonly': 'readonly'}))  # 设置为只读
-    prt_value = forms.CharField(max_length=100, label='PRT Server ID', required=True,widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 5}))
+    prt_value = forms.CharField(max_length=100, label='PRT Server ID', required=True,widget=forms.Textarea(attrs={'class': 'form-control', }))
 
     def clean(self):
         cleaned_data = super().clean()
@@ -60,7 +60,7 @@ class TrackerForm(forms.Form):
     action = forms.ChoiceField(choices=[('add', 'Add'), ('delete', 'Delete')], label='Action',required=True)
     group_name = forms.CharField(label='Resource Group Name', required=True,
                                  widget=forms.TextInput(attrs={'readonly': 'readonly'}))  # 设置为只读
-    tracker_value = forms.CharField(max_length=100, label='Tracker Server ID',required=True,widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 5}))
+    tracker_value = forms.CharField(max_length=100, label='Tracker Server ID',required=True,widget=forms.Textarea(attrs={'class': 'form-control', }))
 
     def clean(self):
         cleaned_data = super().clean()
