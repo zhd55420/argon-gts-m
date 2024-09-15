@@ -1,0 +1,160 @@
+{% extends "layouts/base.html" %}
+{% load form_tags %}
+{% block title %}Manage Brands and Trackers{% endblock title %}
+
+{% block content %}
+    <!-- Header -->
+    <div class="header bg-primary pb-6">
+        <div class="container-fluid">
+            <div class="header-body">
+                <div class="row align-items-center py-4">
+                    <div class="col-lg-6 col-7">
+                        <h6 class="h2 text-white d-inline-block mb-0">Manage Brands and Trackers</h6>
+                        <nav aria-label="breadcrumb" class="d-none d-md-inline-block ml-md-4">
+                            <ol class="breadcrumb breadcrumb-links breadcrumb-dark">
+                                <li class="breadcrumb-item"><a href="#"><i class="fas fa-home"></i></a></li>
+                                <li class="breadcrumb-item"><a href="#">Maintenance Work</a></li>
+                                <li class="breadcrumb-item active" aria-current="page">Manage Brands and Trackers</li>
+                            </ol>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page content -->
+    <div class="container-fluid mt--6">
+        <div class="row">
+            <!-- 左侧选择 Business Unit (公司) -->
+            <div class="col-md-4">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h4 class="mb-0">Select Business Unit</h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="form_type" value="select_business_unit">
+                            <div class="form-group">
+                                <label for="business_unit">Business Unit (Company)</label>
+                                <select name="business_unit" class="form-control" onchange="this.form.submit()">
+                                    <option value="">-- Select Business Unit --</option>
+                                    {% for business_unit in business_units %}
+                                    <option value="{{ business_unit }}" {% if selected_business_unit == business_unit %}selected{% endif %}>{{ business_unit }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block">Select Unit</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 中间管理 Brands -->
+            <div class="col-md-4">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h4 class="mb-0">Manage Brands</h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="form_type" value="submit_brand">
+                            <input type="hidden" name="business_unit" value="{{ selected_business_unit }}"> <!-- 传递公司 -->
+
+                            <!-- 新品牌组选择后显示相关输入框 -->
+                            {% if selected_business_unit %}
+                            <div class="form-group">
+                                <label for="brand_name">Brand Name</label>
+                                <input type="text" name="brand_name" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="release_id">Release ID</label>
+                                <input type="text" name="release_id" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="brand_action">Action</label>
+                                <select name="brand_action" class="form-control">
+                                    <option value="add">Add</option>
+                                    <option value="delete">Delete</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block">Submit Brand</button>
+
+                            <!-- 显示选定 Business Unit 下的已有品牌 -->
+                            <h5 class="mt-4">Existing Brands in {{ selected_business_unit }}</h5>
+                            <ul class="list-group">
+                                {% for brand_name, details in brands.items %}
+                                <li class="list-group-item">{{ brand_name }} (Release ID: {{ details.release_id }})</li>
+                                {% endfor %}
+                            </ul>
+                            {% else %}
+                            <p>Please select a business unit first.</p>
+                            {% endif %}
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧管理 Trackers -->
+            <div class="col-md-4">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h4 class="mb-0">Manage Trackers</h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="form_type" value="submit_tracker">
+                            <input type="hidden" name="business_unit" value="{{ selected_business_unit }}"> <!-- 传递公司 -->
+
+                            <!-- Tracker Name -->
+                            <div class="form-group">
+                                <label for="tracker_name">Tracker Name</label>
+                                <input type="text" name="tracker_name" class="form-control" required>
+                            </div>
+                            <!-- Server Code -->
+                            <div class="form-group">
+                                <label for="server_code">Server Code</label>
+                                <input type="text" name="server_code" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="tracker_action">Action</label>
+                                <select name="tracker_action" class="form-control">
+                                    <option value="add">Add</option>
+                                    <option value="delete">Delete</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block">Submit Tracker</button>
+
+                            <!-- 显示已有的 Trackers -->
+                            {% if trackers %}
+                            <h5 class="mt-4">Existing Trackers</h5>
+                            <ul class="list-group">
+                                {% for tracker_name, details in trackers.items %}
+                                <li class="list-group-item">
+                                    {{ tracker_name }} (Server Code: {{ details.server_code }})
+                                </li>
+                                {% endfor %}
+                            </ul>
+                            {% endif %}
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 显示操作消息 -->
+        {% if messages %}
+        <div class="mt-4">
+            <h3>Messages</h3>
+            <ul class="list-group">
+                {% for message in messages %}
+                <li class="list-group-item">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+{% endblock %}

@@ -84,7 +84,6 @@ BASE_DIR = settings.BASE_DIR
 
 # 拼接出 resource_groups.yaml 的路径
 RESOURCE_GROUPS_YAML_PATH = os.path.join(BASE_DIR, 'apps/myapp', 'Configs', 'resource_groups.yaml')
-
 def load_resource_groups():
     with open(RESOURCE_GROUPS_YAML_PATH, 'r') as file:
         data = yaml.safe_load(file)
@@ -93,6 +92,8 @@ def load_resource_groups():
 def save_resource_groups(data):
     with open(RESOURCE_GROUPS_YAML_PATH, 'w') as file:
         yaml.safe_dump({'resource_groups': data}, file)
+
+
 
 @login_required(login_url="/login/")
 def manage_resources(request):
@@ -117,7 +118,6 @@ def manage_resources(request):
                 if action == 'add':
                     if group_name in resource_groups:
                         messages.append(f"⚠️ Resource group '{group_name}' already exists.")
-
                     else:
                         resource_groups[group_name] = {'prt': [], 'tracker': []}
                         messages.append(f"✅ Resource group '{group_name}' added.")
@@ -134,23 +134,21 @@ def manage_resources(request):
             if prt_form.is_valid():
                 action = prt_form.cleaned_data['action']
                 group_name = prt_form.cleaned_data['group_name']
-                prt_value = prt_form.cleaned_data['prt_value']
-                if action == 'add':
-                    if prt_value in resource_groups[group_name]['prt']:
-                        messages.append(f"⚠️ PRT '{prt_value}' already exists in '{group_name}'.")
-                        logger.error(messages)
-                    else:
-                        resource_groups[group_name]['prt'].append(prt_value)
-                        messages.append(f"✅ PRT '{prt_value}' added to '{group_name}'.")
-                        logger.error(messages)
-                elif action == 'delete':
-                    if prt_value in resource_groups[group_name]['prt']:
-                        resource_groups[group_name]['prt'].remove(prt_value)
-                        messages.append(f"❌ PRT '{prt_value}' deleted from '{group_name}'.")
-                        logger.error(messages)
-                    else:
-                        messages.append(f"⚠️ PRT '{prt_value}' does not exist in '{group_name}'.")
-                        logger.error(messages)
+                prt_values = prt_form.cleaned_data['prt_value'].splitlines()  # 支持批量输入，按行分割
+                for prt_value in prt_values:
+                    prt_value = prt_value.strip()
+                    if action == 'add':
+                        if prt_value in resource_groups[group_name]['prt']:
+                            messages.append(f"⚠️ PRT '{prt_value}' already exists in '{group_name}'.")
+                        else:
+                            resource_groups[group_name]['prt'].append(prt_value)
+                            messages.append(f"✅ PRT '{prt_value}' added to '{group_name}'.")
+                    elif action == 'delete':
+                        if prt_value in resource_groups[group_name]['prt']:
+                            resource_groups[group_name]['prt'].remove(prt_value)
+                            messages.append(f"❌ PRT '{prt_value}' deleted from '{group_name}'.")
+                        else:
+                            messages.append(f"⚠️ PRT '{prt_value}' does not exist in '{group_name}'.")
                 save_resource_groups(resource_groups)
             else:
                 print(prt_form.errors)
@@ -160,37 +158,40 @@ def manage_resources(request):
             if tracker_form.is_valid():
                 action = tracker_form.cleaned_data['action']
                 group_name = tracker_form.cleaned_data['group_name']
-                tracker_value = tracker_form.cleaned_data['tracker_value']
-                if action == 'add':
-                    if tracker_value in resource_groups[group_name]['trackers']:
-                        messages.append(f"⚠️ Tracker '{tracker_value}' already exists in '{group_name}'.")
-                        logger.error(messages)
-                    else:
-                        resource_groups[group_name]['trackers'].append(tracker_value)
-                        messages.append(f"✅ Tracker '{tracker_value}' added to '{group_name}'.")
-                        logger.error(messages)
-                elif action == 'delete':
-                    if tracker_value in resource_groups[group_name]['trackers']:
-                        resource_groups[group_name]['trackers'].remove(tracker_value)
-                        messages.append(f"❌ Tracker '{tracker_value}' deleted from '{group_name}'.")
-                        logger.error(messages)
-                    else:
-                        messages.append(f"⚠️ Tracker '{tracker_value}' does not exist in '{group_name}'.")
-                        logger.error(messages)
+                tracker_values = tracker_form.cleaned_data['tracker_value'].splitlines()  # 支持批量输入，按行分割
+                for tracker_value in tracker_values:
+                    tracker_value = tracker_value.strip()
+                    if action == 'add':
+                        if tracker_value in resource_groups[group_name]['trackers']:
+                            messages.append(f"⚠️ Tracker '{tracker_value}' already exists in '{group_name}'.")
+                        else:
+                            resource_groups[group_name]['trackers'].append(tracker_value)
+                            messages.append(f"✅ Tracker '{tracker_value}' added to '{group_name}'.")
+                    elif action == 'delete':
+                        if tracker_value in resource_groups[group_name]['trackers']:
+                            resource_groups[group_name]['trackers'].remove(tracker_value)
+                            messages.append(f"❌ Tracker '{tracker_value}' deleted from '{group_name}'.")
+                        else:
+                            messages.append(f"⚠️ Tracker '{tracker_value}' does not exist in '{group_name}'.")
                 save_resource_groups(resource_groups)
 
+    # 初始化表单并设置默认选项
     group_form = ResourceGroupForm()
     prt_form = PRTForm(initial={'group_name': selected_group})
     tracker_form = TrackerForm(initial={'group_name': selected_group})
-    context = {'group_form': group_form,
+
+    context = {
+        'group_form': group_form,
         'prt_form': prt_form,
         'tracker_form': tracker_form,
         'messages': messages,
         'resource_groups': resource_groups,
         'selected_group': selected_group,
         'prts': prts,
-        'trackers': trackers,}
-    return render(request, 'hostname_updater/manage_resources.html',context)
+        'trackers': trackers,
+    }
+    return render(request, 'hostname_updater/manage_resources.html', context)
+
 
 @login_required(login_url="/login/")
 def zabbix_delete(request):
@@ -309,4 +310,101 @@ def select_zabbix_telegraf_config(request):
     return render(request, 'hostname_updater/select_zabbix_telegraf_config.html')
 
 
+# 加载和保存 YAML 文件的方法
+BRANDS_YAML_PATH = os.path.join(settings.BASE_DIR, 'apps', 'myapp', 'Configs', 'brands.yaml')
 
+def load_brands_config():
+    try:
+        with open(BRANDS_YAML_PATH, 'r') as file:
+            return yaml.safe_load(file) or {}
+    except FileNotFoundError:
+        return {'brands': {}, 'trackers': {}}
+
+def save_brands_config(config_data):
+    with open(BRANDS_YAML_PATH, 'w') as file:
+        yaml.safe_dump(config_data, file)
+
+def manage_brands_trackers(request):
+    messages = []
+    selected_business_unit = None
+
+    # 加载 Brands 和 Trackers 配置
+    config = load_brands_config()
+    brands = config.get('brands', {})
+    trackers = config.get('trackers', {})
+
+    # 获取所有的 Business Units (公司名称，如 opt, spc)
+    business_units = brands.keys()
+
+    if request.method == 'POST':
+        form_type = request.POST.get('form_type')  # 获取表单类型
+
+        # 处理 Business Unit 选择
+        if form_type == 'select_business_unit':
+            selected_business_unit = request.POST.get('business_unit')
+            if selected_business_unit:
+                # 加载选定 Business Unit 下的品牌
+                brands = brands.get(selected_business_unit, {})
+
+        # 处理 Brands 表单
+        elif form_type == 'submit_brand':
+            business_unit = request.POST.get('business_unit')  # 获取公司信息
+            brand_name = request.POST.get('brand_name')
+            release_id = request.POST.get('release_id')
+            action = request.POST.get('brand_action')
+
+            if business_unit and brand_name and release_id:
+                if action == 'add':
+                    if business_unit not in brands:
+                        brands[business_unit] = {}
+
+                    if brand_name in brands[business_unit]:
+                        messages.append(f"⚠️ Brand '{brand_name}' already exists in '{business_unit}'.")
+                    else:
+                        brands[business_unit][brand_name] = {'release_id': release_id}
+                        messages.append(f"✅ Brand '{brand_name}' added to '{business_unit}'.")
+                elif action == 'delete':
+                    if business_unit in brands and brand_name in brands[business_unit]:
+                        del brands[business_unit][brand_name]
+                        messages.append(f"❌ Brand '{brand_name}' deleted from '{business_unit}'.")
+                    else:
+                        messages.append(f"⚠️ Brand '{brand_name}' does not exist in '{business_unit}'.")
+
+                # 保存更新后的 Brands
+                config['brands'] = brands
+                save_brands_config(config)
+
+        # 处理 Trackers 表单
+        elif form_type == 'submit_tracker':
+            business_unit = request.POST.get('business_unit')  # 获取公司信息
+            tracker_name = request.POST.get('tracker_name')
+            server_code = request.POST.get('server_code')
+            action = request.POST.get('tracker_action')
+
+            if tracker_name and server_code:
+                if action == 'add':
+                    if tracker_name in trackers:
+                        messages.append(f"⚠️ Tracker '{tracker_name}' already exists.")
+                    else:
+                        trackers[tracker_name] = {'server_code': server_code}
+                        messages.append(f"✅ Tracker '{tracker_name}' added with server code '{server_code}'.")
+                elif action == 'delete':
+                    if tracker_name in trackers:
+                        del trackers[tracker_name]
+                        messages.append(f"❌ Tracker '{tracker_name}' deleted.")
+                    else:
+                        messages.append(f"⚠️ Tracker '{tracker_name}' does not exist.")
+
+                # 保存更新后的 Trackers
+                config['trackers'] = trackers
+                save_brands_config(config)
+
+    context = {
+        'brands': brands,
+        'trackers': trackers,
+        'business_units': business_units,
+        'messages': messages,
+        'selected_business_unit': selected_business_unit,
+    }
+
+    return render(request, 'hostname_updater/manage_brands_trackers.html', context)

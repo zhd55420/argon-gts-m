@@ -263,8 +263,8 @@ resource_groups:
     - prt-a61-bud-mia-g003
     - prt-a61-clv-nyc-g002
     - prt-a61-evc-nyc-g006
-    - prt-a61-ovh-vin-g005
     - prt-a61-prc-nyc-g004
+    - prt-a61-ovh-vin-g005
     trackers:
     - trk-a61-zlr-mia-a002-saas
     - trk-a61-zlr-nyc-a001-saas
