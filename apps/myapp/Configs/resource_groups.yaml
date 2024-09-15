@@ -319,6 +319,16 @@ resource_groups:
     - prt-s14-zlr-mrs-g510
     - prt-s14-zlr-mrs-g513
     - prt-s14-zlr-nyc-a001
+    - prt-s14-cds-fkf-g037
+    - prt-s14-cds-fkf-g038
+    - prt-s14-cds-fkf-g039
+    - prt-s14-cds-fkf-g040
+    - prt-s14-cds-fkf-g041
+    - prt-s14-ows-lon-g001
+    - prt-s14-ows-lon-g002
+    - prt-s14-ows-lon-g003
+    - prt-s14-ows-lon-g004
+    - prt-s14-ows-lon-g005
     trackers:
     - trk-s14-cds-fkf-g001
     - trk-s14-clv-fkf-g002

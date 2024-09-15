@@ -1,0 +1,20 @@
+2024-09-15 00:00:02,187 [INFO] bandwidth_logger: PM Bandwidth: 104.19 Gbps, PM Users: 383613, PM Mobile Bandwidth: 4.34 Gbps, PM Mobile Users: 9942
+2024-09-15 00:00:02,267 [INFO] bandwidth_logger: MRT Bandwidth: 0.00 Gbps, MRT Users: 0, MRT Mobile Bandwidth: 0.00 Gbps, MRT Mobile Users: 0
+2024-09-15 00:00:02,267 [DEBUG] bandwidth_logger: Prepared packet: host_name=MFC_Info, item_key=pm.bandwidth, item_value=104.19449909031391
+2024-09-15 00:00:02,267 [DEBUG] bandwidth_logger: Prepared packet: host_name=MFC_Info, item_key=pm.users, item_value=383613
+2024-09-15 00:00:02,267 [DEBUG] bandwidth_logger: Prepared packet: host_name=MFC_Info, item_key=pm.mobile_bandwidth, item_value=4.335719756782055
+2024-09-15 00:00:02,267 [DEBUG] bandwidth_logger: Prepared packet: host_name=MFC_Info, item_key=pm.mobile_users, item_value=9942
+2024-09-15 00:00:02,267 [DEBUG] bandwidth_logger: Prepared packet: host_name=MFC_Info, item_key=mrt.bandwidth, item_value=0
+2024-09-15 00:00:02,267 [DEBUG] bandwidth_logger: Prepared packet: host_name=MFC_Info, item_key=mrt.users, item_value=0
+2024-09-15 00:00:02,267 [DEBUG] bandwidth_logger: Prepared packet: host_name=MFC_Info, item_key=mrt.mobile_bandwidth, item_value=0
+2024-09-15 00:00:02,267 [DEBUG] bandwidth_logger: Prepared packet: host_name=MFC_Info, item_key=mrt.mobile_users, item_value=0
+2024-09-15 00:00:02,296 [INFO] bandwidth_logger: Successfully sent data to Zabbix: 8 processed, 0 failed, 8 total
+2024-09-15 00:00:02,296 [DEBUG] bandwidth_logger: Prepared packet: host_name=MFC_Info, item_key=pm.bandwidth, item_value=104.19449909031391
+2024-09-15 00:00:02,296 [DEBUG] bandwidth_logger: Prepared packet: host_name=MFC_Info, item_key=pm.users, item_value=383613
+2024-09-15 00:00:02,297 [DEBUG] bandwidth_logger: Prepared packet: host_name=MFC_Info, item_key=pm.mobile_bandwidth, item_value=4.335719756782055
+2024-09-15 00:00:02,297 [DEBUG] bandwidth_logger: Prepared packet: host_name=MFC_Info, item_key=pm.mobile_users, item_value=9942
+2024-09-15 00:00:02,297 [DEBUG] bandwidth_logger: Prepared packet: host_name=MFC_Info, item_key=mrt.bandwidth, item_value=0
+2024-09-15 00:00:02,297 [DEBUG] bandwidth_logger: Prepared packet: host_name=MFC_Info, item_key=mrt.users, item_value=0
+2024-09-15 00:00:02,297 [DEBUG] bandwidth_logger: Prepared packet: host_name=MFC_Info, item_key=mrt.mobile_bandwidth, item_value=0
+2024-09-15 00:00:02,297 [DEBUG] bandwidth_logger: Prepared packet: host_name=MFC_Info, item_key=mrt.mobile_users, item_value=0
+2024-09-15 00:00:02,311 [ERROR] bandwidth_logger: Error sending data to Zabbix: [Errno 111] Connection refused
