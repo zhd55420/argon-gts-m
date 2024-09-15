@@ -2,7 +2,7 @@ from django.db import models
 
 # Create your models here.
 class BrandData(models.Model):
-    brand_name = models.CharField(max_length=100)
+    brand_name = models.CharField()
     device_type = models.CharField(max_length=50)  # 'mobile' or 'set-top box'
     user_count = models.IntegerField()
     bandwidth = models.FloatField()
