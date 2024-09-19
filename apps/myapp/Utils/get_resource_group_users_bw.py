@@ -4,7 +4,7 @@ from influxdb import InfluxDBClient
 class ResourceGroupQueryTool:
     def __init__(self, client, logger=None):
         self.client = client
-        self.logger = logger or logging.getLogger('resource_group_query_tool')
+        self.logger = logger or logging.getLogger('influxdb_query')
 
     def query_prt_bandwidth(self, prt_server_ids):
         total_bandwidth = 0
@@ -56,10 +56,8 @@ class ResourceGroupQueryTool:
                 'fill(none)'
             ).format("|".join(prt_server_ids))
 
-            self.logger.debug(f"PRT Users Query: {query}")
             result = self.client.query(query)
             points = [point for point in result.get_points()]
-            self.logger.debug(f"PRT Users Points: {points}")
 
             # 汇总所有时间段的总和
             if len(points) >= 3:

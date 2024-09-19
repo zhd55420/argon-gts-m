@@ -7,7 +7,7 @@ from apps.myapp.Utils.convert_cfg import load_config
 from apps.myapp.Utils.get_vod_users_bw import VodQueryTool
 
 # 获取 Zabbix 日志记录器
-zabbix_logger = logging.getLogger('bandwidth_logger')
+zabbix_logger = logging.getLogger('zabbix')
 
 def send_to_zabbix(metrics, zabbix_config, host_name):
     try:

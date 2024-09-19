@@ -4,7 +4,7 @@ from influxdb import InfluxDBClient
 class ResourceTrackerQueryTool:
     def __init__(self, client, logger=None):
         self.client = client
-        self.logger = logger or logging.getLogger('resource_group_query_tool')
+        self.logger = logger or logging.getLogger('influxdb_query')
 
     def query_tracker_users(self, tracker_server_ids):
         total_user = 0

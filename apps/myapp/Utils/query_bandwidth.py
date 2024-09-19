@@ -10,11 +10,12 @@ from apps.myapp.Utils.get_resource_group_tracker_user import ResourceTrackerQuer
 from apps.myapp.Utils.get_vod_trackers_user import VodTrackerQueryTool
 from apps.myapp.Utils.get_vod_users_bw import VodQueryTool
 
-logger = logging.getLogger('bandwidth_logger')
+
 
 
 def query_and_log_bandwidth(brand_type, send_message_func):
     client = None
+    logger = logging.getLogger('brand_BAU')
     try:
         client = get_livetv_influxdb_client()
         brands_config = load_config('brands.yaml')  # 应指向YAML文件的正确路径
@@ -48,6 +49,7 @@ def query_and_log_bandwidth(brand_type, send_message_func):
 
 def query_and_log_tracker_users(tracker_type, send_message_func):
     client = None
+    logger = logging.getLogger('brand_BAU')
     try:
         client = get_livetv_influxdb_client()
         tracker_config = load_config('brands.yaml')
@@ -79,6 +81,7 @@ def query_and_log_tracker_users(tracker_type, send_message_func):
 
 def query_and_log_resource_groups(send_message_func):
     client = None
+    logger = logging.getLogger('resource_group')
     try:
         client = get_livetv_influxdb_client()
         resource_group_config = load_config('resource_groups.yaml')
@@ -113,6 +116,7 @@ def query_and_log_resource_groups(send_message_func):
 
 def query_and_log_vod(send_message_func):
     client = None
+    logger = logging.getLogger('brand_BAU')
     try:
         client = get_vod_influxdb_client()
         vod_query_tool = VodQueryTool(client)
