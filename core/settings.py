@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     'apps.myapp',# Enable the myapp
     'apps.hostname_updater',# Enable the hostname_updater
     'apps.authentication',# Enable the authentication
+    'django_crontab',
 ]
 
 # settings.py 文件中添加新的定时任务
