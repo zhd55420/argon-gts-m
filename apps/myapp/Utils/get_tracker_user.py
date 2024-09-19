@@ -6,7 +6,7 @@ class TrackerInfluxDBQueryTool:
     def __init__(self, client, tracker_config, logger=None):
         self.client = client
         self.tracker_config = tracker_config  # 配置字典
-        self.logger = logger or logging.getLogger('influxdb_query_error')
+        self.logger = logger or logging.getLogger('influxdb_query')
 
     def query_bandwidth(self, tracker):
         server_code = self.tracker_config['Trackers'][tracker]['server_code']

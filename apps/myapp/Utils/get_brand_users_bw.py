@@ -7,7 +7,7 @@ class InfluxDBQueryTool:
     def __init__(self, client, brand_config, logger=None):
         self.client = client
         self.brand_config = brand_config  # 品牌配置字典
-        self.logger = logger or logging.getLogger('influxdb_query_error')
+        self.logger = logger or logging.getLogger('influxdb_query')
 
     def query_bandwidth(self, brand):
         try:
@@ -30,6 +30,7 @@ class InfluxDBQueryTool:
             if last_set:
                 bandwidth = int(last_set[-1]['top']) / 1048576 / 1024
                 total_bandwidth += bandwidth
+            self.logger.error(total_bandwidth)
         except Exception as e:
             self.logger.error(e)
             print(f"Error querying bandwidth for brand {brand}: {e}")
@@ -57,6 +58,7 @@ class InfluxDBQueryTool:
             if last_set:
                 user = int(last_set[-1]['top'])
                 total_user += user
+            self.logger.error(total_user)
         except Exception as e:
             self.logger.error(e)
             print(f"Error querying users for brand {brand}: {e}")

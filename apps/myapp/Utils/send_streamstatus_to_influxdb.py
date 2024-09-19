@@ -4,7 +4,7 @@ import requests
 from influxdb import InfluxDBClient
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('streamstatus')
 
 
 def fetch_and_process_stream_data(api_url, measurement_name):
@@ -54,7 +54,7 @@ def fetch_and_process_stream_data(api_url, measurement_name):
                                 password='bja!d7BB')
         client.write_points(points, database='rapid_stream',batch_size=1000)
         client.close()
-        logger.info(f"Running Task for {measurement_name}")
+        logger.info(f"Running Task for {measurement_name} :add {points}")
     except Exception as e:
         logger.error(f"Error in Task for {measurement_name}: {str(e)}")
 

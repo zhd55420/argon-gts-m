@@ -87,7 +87,7 @@ LOGGING = {
             'formatter': 'standard',
         },
         'hostname_updater': {
-            'level': 'DEBUG',
+            'level': 'INFO',
             'class': 'logging.handlers.TimedRotatingFileHandler',
             'filename': os.path.join(LOG_DIR,  'hostname_updater','webrequest.log'),
             'when': 'midnight',
@@ -96,27 +96,45 @@ LOGGING = {
             'formatter': 'standard',
         },
         'streamstatus': {
-            'level': 'DEBUG',
+            'level': 'INFO',
             'class': 'logging.handlers.TimedRotatingFileHandler',
-            'filename': os.path.join(LOG_DIR, 'myapp', 'streamstatus.log'),
+            'filename': os.path.join(LOG_DIR, 'stream', 'streamstatus.log'),
             'when': 'midnight',
             'backupCount': 7,
             'encoding': 'utf-8',
             'formatter': 'standard',
         },
         'influxdb_query': {
-            'level': 'DEBUG',
+            'level': 'INFO',
             'class': 'logging.handlers.TimedRotatingFileHandler',
-            'filename': os.path.join(LOG_DIR, 'myapp', 'influxdb_query_error.log'),
+            'filename': os.path.join(LOG_DIR, 'influxdb_query', 'influxdb_query.log'),
             'when': 'midnight',
             'backupCount': 7,
             'encoding': 'utf-8',
             'formatter': 'standard',
         },
         'bw_user': {
-            'level': 'DEBUG',
+            'level': 'INFO',
             'class': 'logging.handlers.TimedRotatingFileHandler',
             'filename': os.path.join(LOG_DIR, 'myapp','bw_user_logger.log'),
+            'when': 'midnight',
+            'backupCount': 7,
+            'encoding': 'utf-8',
+            'formatter': 'standard',
+        },
+        'resource_group': {
+            'level': 'INFO',
+            'class': 'logging.handlers.TimedRotatingFileHandler',
+            'filename': os.path.join(LOG_DIR, 'resource_group','resource_group_bw_user.log'),
+            'when': 'midnight',
+            'backupCount': 7,
+            'encoding': 'utf-8',
+            'formatter': 'standard',
+        },
+        'zabbix': {
+            'level': 'INFO',
+            'class': 'logging.handlers.TimedRotatingFileHandler',
+            'filename': os.path.join(LOG_DIR, 'zabbix','send_to_zabbix.log'),
             'when': 'midnight',
             'backupCount': 7,
             'encoding': 'utf-8',
@@ -133,24 +151,34 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': False,  # 阻止向上传播到root logger
         },
-        'influxdb_query_error': {
+        'influxdb_query': {
             'handlers': ['influxdb_query'],
-            'level': 'DEBUG',
+            'level': 'INFO',
             'propagate': False,  # 阻止向上传播到root logger
         },
-        'bandwidth_logger': {
+        'brand_BAU': {
             'handlers': ['bw_user'],
-            'level': 'DEBUG',
+            'level': 'INFO',
             'propagate': False,  # 阻止向上传播到root logger
         },
         'hostname_updater': {
             'handlers': ['hostname_updater'],
-            'level': 'DEBUG',
+            'level': 'INFO',
             'propagate': False,  # 阻止向上传播到root logger
         },
         'streamstatus': {
             'handlers': ['streamstatus'],
-            'level': 'DEBUG',
+            'level': 'INFO',
+            'propagate': False,  # 阻止向上传播到root logger
+        },
+        'resource_group': {
+            'handlers': ['resource_group'],
+            'level': 'INFO',
+            'propagate': False,  # 阻止向上传播到root logger
+        },
+        'zabbix': {
+            'handlers': ['zabbix'],
+            'level': 'INFO',
             'propagate': False,  # 阻止向上传播到root logger
         },
     },
