@@ -102,6 +102,8 @@ def manage_resources(request):
     selected_group = None
     prts = []
     trackers = []
+    # 获取当前用户的信息
+    user_info = f"User: {request.user.username} (ID: {request.user.id})" if request.user.is_authenticated else "Anonymous User"
 
     if request.method == 'POST':
         if 'select_group' in request.POST:
@@ -109,6 +111,7 @@ def manage_resources(request):
             if selected_group:
                 prts = resource_groups[selected_group]['prt']
                 trackers = resource_groups[selected_group]['trackers']
+                logger.info(f"{user_info} selected group '{selected_group}'")
 
         elif 'submit_group' in request.POST:
             group_form = ResourceGroupForm(request.POST)
@@ -118,15 +121,19 @@ def manage_resources(request):
                 if action == 'add':
                     if group_name in resource_groups:
                         messages.append(f"⚠️ Resource group '{group_name}' already exists.")
+                        logger.error(f"{user_info} tried to add existing resource group '{group_name}'")
                     else:
                         resource_groups[group_name] = {'prt': [], 'tracker': []}
                         messages.append(f"✅ Resource group '{group_name}' added.")
+                        logger.info(f"{user_info} added resource group '{group_name}'")
                 elif action == 'delete':
                     if group_name in resource_groups:
                         del resource_groups[group_name]
                         messages.append(f"❌ Resource group '{group_name}' deleted.")
+                        logger.info(f"{user_info} deleted resource group '{group_name}'")
                     else:
                         messages.append(f"⚠️ Resource group '{group_name}' does not exist.")
+                        logger.error(f"{user_info} tried to delete non-existing resource group '{group_name}'")
                 save_resource_groups(resource_groups)
 
         elif 'submit_prt' in request.POST:
@@ -140,17 +147,22 @@ def manage_resources(request):
                     if action == 'add':
                         if prt_value in resource_groups[group_name]['prt']:
                             messages.append(f"⚠️ PRT '{prt_value}' already exists in '{group_name}'.")
+                            logger.error(f"{user_info} tried to add existing PRT '{prt_value}' in group '{group_name}'")
                         else:
                             resource_groups[group_name]['prt'].append(prt_value)
                             messages.append(f"✅ PRT '{prt_value}' added to '{group_name}'.")
+                            logger.info(f"{user_info} added PRT '{prt_value}' to group '{group_name}'")
                     elif action == 'delete':
                         if prt_value in resource_groups[group_name]['prt']:
                             resource_groups[group_name]['prt'].remove(prt_value)
                             messages.append(f"❌ PRT '{prt_value}' deleted from '{group_name}'.")
+                            logger.info(f"{user_info} deleted PRT '{prt_value}' from group '{group_name}'")
                         else:
                             messages.append(f"⚠️ PRT '{prt_value}' does not exist in '{group_name}'.")
+                            logger.error(f"{user_info} tried to delete non-existing PRT '{prt_value}' from group '{group_name}'")
                 save_resource_groups(resource_groups)
             else:
+                logger.error(f"{user_info} encountered form validation errors in PRT form: {prt_form.errors}")
                 print(prt_form.errors)
 
         elif 'submit_tracker' in request.POST:
@@ -164,15 +176,19 @@ def manage_resources(request):
                     if action == 'add':
                         if tracker_value in resource_groups[group_name]['trackers']:
                             messages.append(f"⚠️ Tracker '{tracker_value}' already exists in '{group_name}'.")
+                            logger.error(f"{user_info} tried to add existing tracker '{tracker_value}' in group '{group_name}'")
                         else:
                             resource_groups[group_name]['trackers'].append(tracker_value)
                             messages.append(f"✅ Tracker '{tracker_value}' added to '{group_name}'.")
+                            logger.info(f"{user_info} added tracker '{tracker_value}' to group '{group_name}'")
                     elif action == 'delete':
                         if tracker_value in resource_groups[group_name]['trackers']:
                             resource_groups[group_name]['trackers'].remove(tracker_value)
                             messages.append(f"❌ Tracker '{tracker_value}' deleted from '{group_name}'.")
+                            logger.info(f"{user_info} deleted tracker '{tracker_value}' from group '{group_name}'")
                         else:
                             messages.append(f"⚠️ Tracker '{tracker_value}' does not exist in '{group_name}'.")
+                            logger.error(f"{user_info} tried to delete non-existing tracker '{tracker_value}' from group '{group_name}'")
                 save_resource_groups(resource_groups)
 
     # 初始化表单并设置默认选项
@@ -199,6 +215,9 @@ def zabbix_delete(request):
     error_messages = []
     zabbix_servers = [(key, f"{key.replace('_', ' ').title()} Server") for key in settings.ZABBIX_CONFIG.keys()]
 
+    # 获取当前用户的信息
+    user_info = f"User: {request.user.username} (ID: {request.user.id})" if request.user.is_authenticated else "Anonymous User"
+
     if request.method == 'POST':
         form = ZabbixDeleteForm(request.POST)
         form.fields['zabbix_server'].choices = zabbix_servers
@@ -213,24 +232,30 @@ def zabbix_delete(request):
                     continue
 
                 try:
-                    zapi = get_zabbix_connection(server_name)
-                    host_id = get_zabbix_host_id(ip_address,zapi)
+                    zapi = get_zabbix_connection(server_name)  # 获取Zabbix连接
+                    host_id = get_zabbix_host_id(ip_address, zapi)  # 获取主机ID
 
                     if host_id:
-                        zapi.host.delete(host_id)  # 确保传递的 `host_id` 是一个列表
+                        zapi.host.delete(host_id)  # 删除主机监控
                         message = f"Successfully deleted monitoring for IP: {ip_address} on {server_name}"
                         messages.success(request, message)
                         success_messages.append(message)
+                        logger.info(
+                            f"{user_info} successfully deleted monitoring for IP: {ip_address} on {server_name}")
+
                     else:
                         message = f"No monitoring found for IP: {ip_address} on {server_name}"
                         messages.warning(request, message)
                         error_messages.append(message)
+                        logger.warning(
+                            f"{user_info} attempted to delete non-existing monitoring for IP: {ip_address} on {server_name}")
 
                 except Exception as e:
                     message = f"Failed to delete monitoring for IP: {ip_address} on {server_name}. Error: {str(e)}"
                     messages.error(request, message)
                     error_messages.append(message)
-
+                    logger.error(
+                        f"{user_info} failed to delete monitoring for IP: {ip_address} on {server_name}. Error: {str(e)}")
 
     else:
         form = ZabbixDeleteForm()
@@ -245,8 +270,12 @@ def zabbix_delete(request):
 
     return render(request, 'hostname_updater/zabbix_delete.html', context)
 
+
 @login_required(login_url="/login/")
 def select_zabbix_telegraf_config(request):
+    # 获取当前用户的信息
+    user_info = f"User: {request.user.username} (ID: {request.user.id})" if request.user.is_authenticated else "Anonymous User"
+
     if request.method == 'POST':
         # 获取表单数据
         bulk_input = request.POST.get('bulk_input')
@@ -266,6 +295,8 @@ def select_zabbix_telegraf_config(request):
             # 处理成功和错误消息列表
             success_messages = []
             error_messages = []
+
+            logger.info(f"{user_info} started bulk update of Zabbix and Telegraf configurations.")
 
             # 解析批量输入的 IP 地址和主机名
             lines = bulk_input.strip().split('\n')
@@ -290,10 +321,13 @@ def select_zabbix_telegraf_config(request):
                     # 根据结果添加成功或错误消息
                     if result['success']:
                         success_messages.append(f"{ip_address}: {result['message']}")
+                        logger.info(f"{user_info} successfully updated IP {ip_address} to hostname '{new_hostname}'")
                     else:
                         error_messages.append(f"{ip_address}: {result['message']}")
+                        logger.error(f"{user_info} failed to update IP {ip_address}: {result['message']}")
                 except ValueError:
                     error_messages.append(f"Invalid format for line: {line}")
+                    logger.error(f"{user_info} provided invalid input format for line: {line}")
 
             # 渲染模板并显示结果
             return render(request, 'hostname_updater/select_zabbix_telegraf_config.html', {
@@ -302,6 +336,7 @@ def select_zabbix_telegraf_config(request):
             })
         else:
             error_messages = ["Invalid Zabbix or Telegraf configuration selection."]
+            logger.error(f"{user_info} selected an invalid Zabbix or Telegraf configuration.")
             return render(request, 'hostname_updater/select_zabbix_telegraf_config.html', {
                 'error_messages': error_messages,
             })
@@ -328,6 +363,9 @@ def manage_brands_trackers(request):
     messages = []
     selected_business_unit = None
 
+    # 获取当前用户的信息
+    user_info = f"User: {request.user.username} (ID: {request.user.id})" if request.user.is_authenticated else "Anonymous User"
+
     # 加载 Brands 和 Trackers 配置
     config = load_brands_config()
     brands = config.get('brands', {})
@@ -345,6 +383,7 @@ def manage_brands_trackers(request):
             if selected_business_unit:
                 # 加载选定 Business Unit 下的品牌
                 brands = brands.get(selected_business_unit, {})
+                logger.info(f"{user_info} selected business unit '{selected_business_unit}'.")
 
         # 处理 Brands 表单
         elif form_type == 'submit_brand':
@@ -360,15 +399,19 @@ def manage_brands_trackers(request):
 
                     if brand_name in brands[business_unit]:
                         messages.append(f"⚠️ Brand '{brand_name}' already exists in '{business_unit}'.")
+                        logger.warning(f"{user_info} attempted to add existing brand '{brand_name}' to business unit '{business_unit}'.")
                     else:
                         brands[business_unit][brand_name] = {'release_id': release_id}
                         messages.append(f"✅ Brand '{brand_name}' added to '{business_unit}'.")
+                        logger.info(f"{user_info} added brand '{brand_name}' with release ID '{release_id}' to business unit '{business_unit}'.")
                 elif action == 'delete':
                     if business_unit in brands and brand_name in brands[business_unit]:
                         del brands[business_unit][brand_name]
                         messages.append(f"❌ Brand '{brand_name}' deleted from '{business_unit}'.")
+                        logger.info(f"{user_info} deleted brand '{brand_name}' from business unit '{business_unit}'.")
                     else:
                         messages.append(f"⚠️ Brand '{brand_name}' does not exist in '{business_unit}'.")
+                        logger.warning(f"{user_info} attempted to delete non-existing brand '{brand_name}' from business unit '{business_unit}'.")
 
                 # 保存更新后的 Brands
                 config['brands'] = brands
@@ -385,15 +428,19 @@ def manage_brands_trackers(request):
                 if action == 'add':
                     if tracker_name in trackers:
                         messages.append(f"⚠️ Tracker '{tracker_name}' already exists.")
+                        logger.warning(f"{user_info} attempted to add existing tracker '{tracker_name}'.")
                     else:
                         trackers[tracker_name] = {'server_code': server_code}
                         messages.append(f"✅ Tracker '{tracker_name}' added with server code '{server_code}'.")
+                        logger.info(f"{user_info} added tracker '{tracker_name}' with server code '{server_code}'.")
                 elif action == 'delete':
                     if tracker_name in trackers:
                         del trackers[tracker_name]
                         messages.append(f"❌ Tracker '{tracker_name}' deleted.")
+                        logger.info(f"{user_info} deleted tracker '{tracker_name}'.")
                     else:
                         messages.append(f"⚠️ Tracker '{tracker_name}' does not exist.")
+                        logger.warning(f"{user_info} attempted to delete non-existing tracker '{tracker_name}'.")
 
                 # 保存更新后的 Trackers
                 config['trackers'] = trackers
