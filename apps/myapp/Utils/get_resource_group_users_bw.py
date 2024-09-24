@@ -23,7 +23,7 @@ class ResourceGroupQueryTool:
                 'GROUP BY time(1m)'
                 'fill(none)'
             ).format("|".join(prt_server_ids))
-
+            self.logger.info(f"prt bandwidth Query: {query}")
             result = self.client.query(query)
             points = [point for point in result.get_points()]
 
@@ -32,10 +32,10 @@ class ResourceGroupQueryTool:
                 sorted_points = sorted(points, key=lambda x: x['total_bandwidth'], reverse=True)
                 total_bandwidth = sorted_points[2]['total_bandwidth'] / 1048576 / 1024  # 转换为 Gbps
             else:
-                self.logger.warning("Not enough data points to determine the third highest bandwidth")
+                self.logger.warning("prt bandwidth:Not enough data points to determine the third highest bandwidth")
         except Exception as e:
-            self.logger.error(f"Error querying bandwidth for PRT servers: {e}")
-        self.logger.debug(f"Total Bandwidth: {total_bandwidth} Gbps")
+            self.logger.error(f"prt bandwidth:Error querying bandwidth for PRT servers: {e}")
+        self.logger.info(f"prt bandwidth:Total Bandwidth: {total_bandwidth} Gbps")
         return total_bandwidth
 
     def query_prt_users(self, prt_server_ids):
@@ -55,7 +55,7 @@ class ResourceGroupQueryTool:
                 'GROUP BY time(1m)'
                 'fill(none)'
             ).format("|".join(prt_server_ids))
-
+            self.logger.info(f"prt users Query: {query}")
             result = self.client.query(query)
             points = [point for point in result.get_points()]
 
@@ -64,9 +64,9 @@ class ResourceGroupQueryTool:
                 sorted_points = sorted(points, key=lambda x: x['total_user'], reverse=True)
                 total_user = sorted_points[2]['total_user']
             else:
-                self.logger.warning("Not enough data points to determine the third highest user count")
+                self.logger.warning("prt users:Not enough data points to determine the third highest user count")
         except Exception as e:
-            self.logger.error(f"Error querying user count for PRT servers: {e}")
-        self.logger.debug(f"Total Users: {total_user}")
+            self.logger.error(f"prt users:Error querying user count for PRT servers: {e}")
+        self.logger.info(f"prt users:Total Users: {total_user}")
         return total_user
 
