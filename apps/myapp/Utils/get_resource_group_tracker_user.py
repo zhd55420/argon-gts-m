@@ -21,6 +21,7 @@ class ResourceTrackerQueryTool:
                 'GROUP BY time(1m)'
             ).format("|".join(tracker_server_ids))
 
+            self.logger.info(f"live tracker Users Query: {query}")
             result = self.client.query(query)
             points = [point for point in result.get_points()]
 
@@ -29,9 +30,9 @@ class ResourceTrackerQueryTool:
                 sorted_points = sorted(points, key=lambda x: x['total_user'], reverse=True)
                 total_user = sorted_points[2]['total_user']
             else:
-                self.logger.warning("Not enough data points to determine the third highest user count")
+                self.logger.warning("live tracker:Not enough data points to determine the third highest user count")
         except Exception as e:
-            self.logger.error(f"Error querying user count for Tracker servers: {e}")
-        self.logger.debug(f"Total Users: {total_user}")
+            self.logger.error(f"live tracker:Error querying user count for live tracker servers: {e}")
+        self.logger.info(f"live tracker Total Users: {total_user}")
         return total_user
 
