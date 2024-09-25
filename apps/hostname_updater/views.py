@@ -16,6 +16,9 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 logger = logging.getLogger('hostname_updater')
 @login_required(login_url="/login/")
 def update_hostname(request):
+    # 获取当前用户的信息
+    user_info = f"User: {request.user.username} (ID: {request.user.id})" if request.user.is_authenticated else "Anonymous User"
+
     success_messages = []
     error_messages = []
     zabbix_servers = [(key, f"{key.replace('_', ' ').title()} Server") for key in settings.ZABBIX_CONFIG.keys()]
@@ -40,15 +43,15 @@ def update_hostname(request):
                             success_messages.append(message)
                             success_messages.append(telegraf_result['message']) if telegraf_result[
                                 'success'] else error_messages.append(telegraf_result['message'])
-                            logger.info(message)
+                            logger.info(user_info +"  :  "+ success_messages)
                         else:
                             message = f"Failed to update hostname for {ip_address}."
                             error_messages.append(message)
-                            logger.error(message)
+                            logger.error(user_info +"  :  "+ error_messages)
                     except Exception as e:
                         message = f"Error processing line '{line}': {str(e)}"
                         error_messages.append(message)
-                        logger.error(message)
+                        logger.error(user_info +"  :  "+ error_messages)
 
     else:
         form = HostnameUpdateForm()
@@ -196,6 +199,8 @@ def manage_resources(request):
 
 @login_required(login_url="/login/")
 def zabbix_delete(request):
+
+
     success_messages = []
     error_messages = []
     zabbix_servers = [(key, f"{key.replace('_', ' ').title()} Server") for key in settings.ZABBIX_CONFIG.keys()]
