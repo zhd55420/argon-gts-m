@@ -12,4 +12,6 @@ urlpatterns = [
     path("", include("apps.home.urls")),             # UI Kits Html files
 
     path('hostname_updater/', include('apps.hostname_updater.urls')),  # hostname_updater的路由
+    path('jsonfilter/', include('apps.jsonfilter.urls')),  # hostname_updater的路由
+
 ]
