@@ -39,14 +39,6 @@
                         <form method="post">
                             {% csrf_token %}
                             <div class="form-group">
-                                <label for="single_ip_address">Single IP Address:</label>
-                                {{ form.single_ip_address|add_class:"form-control" }}
-                            </div>
-                            <div class="form-group">
-                                <label for="single_new_hostname">Single New Hostname:</label>
-                                {{ form.single_new_hostname|add_class:"form-control" }}
-                            </div>
-                            <div class="form-group">
                                 <label for="bulk_input">Bulk Input:</label>
                                 {{ form.bulk_input|add_class:"form-control" }}
                                 <p class="text-muted">Note: For bulk input, each line should be in the format: <code>IP, New Hostname</code></p>
