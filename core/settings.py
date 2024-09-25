@@ -18,7 +18,7 @@ SECRET_KEY = config('SECRET_KEY', default='S#perS3crEt_1122')
 DEBUG = False
 
 # load production server from .env
-ALLOWED_HOSTS = ['148.113.190.207']
+ALLOWED_HOSTS = ['148.113.190.207','127.0.0.1']
 
 # Application definition
 
@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'apps.hostname_updater',# Enable the hostname_updater
     'apps.authentication',# Enable the authentication
     'django_crontab',
+    'apps.jsonfilter',
 ]
 
 # settings.py 文件中添加新的定时任务
