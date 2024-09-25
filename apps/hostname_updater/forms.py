@@ -1,14 +1,6 @@
 from django import forms
 
 class HostnameUpdateForm(forms.Form):
-    single_ip_address = forms.CharField(
-        required=False,
-        widget=forms.TextInput(attrs={'class': 'form-control'})
-    )
-    single_new_hostname = forms.CharField(
-        required=False,
-        widget=forms.TextInput(attrs={'class': 'form-control'})
-    )
     bulk_input = forms.CharField(
         required=False,
         widget=forms.Textarea(attrs={'class': 'form-control', })

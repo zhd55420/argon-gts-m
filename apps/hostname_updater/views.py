@@ -24,23 +24,8 @@ def update_hostname(request):
         form = HostnameUpdateForm(request.POST)
         form.fields['zabbix_server'].choices = zabbix_servers
         if form.is_valid():
-            single_ip_address = form.cleaned_data['single_ip_address']
-            single_new_hostname = form.cleaned_data['single_new_hostname']
             bulk_input = form.cleaned_data['bulk_input']
             zabbix_server = form.cleaned_data['zabbix_server']
-
-            # 处理单个IP和主机名更新
-            if single_ip_address and single_new_hostname:
-                result = update_zabbix_hostname(single_ip_address, single_new_hostname, zabbix_server)
-                if result:
-                    update_telegraf_host(single_ip_address, single_new_hostname)
-                    message = f"Successfully updated hostname for {single_ip_address} to {single_new_hostname}."
-                    success_messages.append(message)
-                    logger.info(message)
-                else:
-                    message = f"Failed to update hostname for {single_ip_address}."
-                    error_messages.append(message)
-                    logger.error(message)
 
             # 处理批量IP和主机名更新
             if bulk_input:
