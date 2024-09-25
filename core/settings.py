@@ -51,7 +51,7 @@ CRONJOBS = [
 LOG_DIR = os.path.join(BASE_DIR, 'logs')
 
 # 定义需要创建的子目录（即各个 app 的日志目录）
-log_subdirs = ['hostname_updater', 'myapp']
+log_subdirs = ['hostname_updater', 'myapp','stream','influxdb_query','resource_group','zabbix']
 
 
 # 确保日志目录和子目录存在

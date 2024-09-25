@@ -228,6 +228,7 @@ resource_groups:
     - prt-a16-zlr-was-g024
     - prt-a16-cds-vin-a001
     - prt-a16-cds-vin-a002
+    - prt-a16-cds-mia-a004
     trackers:
     - trk-a11-zlr-chi-a002
     - trx-a11-zlr-dal-a002
@@ -329,6 +330,17 @@ resource_groups:
     - prt-s14-ows-lon-g003
     - prt-s14-ows-lon-g004
     - prt-s14-ows-lon-g005
+    - prt-s14-evc-fkf-g027
+    - prt-s14-evc-fkf-g028
+    - prt-s14-evc-fkf-g029
+    - prt-s14-evc-fkf-g030
+    - prt-s14-evc-fkf-g031
+    - prt-s14-evc-fkf-g032
+    - PRT-S14-ZLR-MRS-G001
+    - PRT-S14-ZLR-MRS-G002
+    - PRT-S14-ZLR-MRS-G003
+    - PRT-S14-ZLR-MRS-G004
+    - PRT-S14-ZLR-MRS-G005
     trackers:
     - trk-s14-cds-fkf-g001
     - trk-s14-clv-fkf-g002
