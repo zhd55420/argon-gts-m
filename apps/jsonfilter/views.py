@@ -1,7 +1,9 @@
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from .forms import JSONInputForm
 import json
-
+from django.contrib.auth.decorators import login_required
+@login_required(login_url="/login/")
 def json_filter_view(request):
     form = JSONInputForm()
     filtered_data = []

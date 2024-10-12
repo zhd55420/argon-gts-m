@@ -10,6 +10,12 @@ from .utils.utils import update_zabbix_hostname, update_telegraf_host, get_zabbi
     update_telegraf_zabbix_config
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.shortcuts import render
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import requests
+import json
+import paramiko
 # 配置 Django 设置模块
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 
@@ -43,11 +49,19 @@ def update_hostname(request):
                             success_messages.append(message)
                             success_messages.append(telegraf_result['message']) if telegraf_result[
                                 'success'] else error_messages.append(telegraf_result['message'])
-                            logger.info(user_info +"  :  "+ success_messages)
+
+                            # 将列表转换为字符串，使用join方法
+                            success_messages_str = ', '.join(success_messages)
+                            logger.info(user_info + "  :  " + success_messages_str)
                         else:
                             message = f"Failed to update hostname for {ip_address}."
                             error_messages.append(message)
-                            logger.error(user_info +"  :  "+ error_messages)
+
+                            # 将 `error_messages` 列表转换为字符串，用逗号或其他分隔符连接
+                            error_messages_str = ', '.join(error_messages)  # 可以根据需要更改分隔符为其他字符
+
+                            # 正确拼接字符串进行日志记录
+                            logger.error(user_info + "  :  " + error_messages_str)
                     except Exception as e:
                         message = f"Error processing line '{line}': {str(e)}"
                         error_messages.append(message)
@@ -80,7 +94,6 @@ def load_resource_groups():
 def save_resource_groups(data):
     with open(RESOURCE_GROUPS_YAML_PATH, 'w') as file:
         yaml.safe_dump({'resource_groups': data}, file)
-
 
 
 @login_required(login_url="/login/")
@@ -445,3 +458,4 @@ def manage_brands_trackers(request):
     }
 
     return render(request, 'hostname_updater/manage_brands_trackers.html', context)
+
