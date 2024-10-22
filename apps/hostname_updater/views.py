@@ -65,7 +65,12 @@ def update_hostname(request):
                     except Exception as e:
                         message = f"Error processing line '{line}': {str(e)}"
                         error_messages.append(message)
-                        logger.error(user_info +"  :  "+ error_messages)
+                        # 将 `error_messages` 列表转换为字符串，用逗号或其他分隔符连接
+                        error_messages_str = ', '.join(error_messages)  # 可以根据需要更改分隔符为其他字符
+
+                        # 正确拼接字符串进行日志记录
+                        logger.error(user_info + "  :  " + error_messages_str)
+
 
     else:
         form = HostnameUpdateForm()

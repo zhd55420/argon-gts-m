@@ -15,7 +15,7 @@ SECRET_KEY = config('SECRET_KEY', default='S#perS3crEt_1122')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # DEBUG = config('DEBUG', default=True, cast=bool)
-DEBUG = False
+DEBUG = True
 
 # load production server from .env
 ALLOWED_HOSTS = ['148.113.190.207','127.0.0.1']
