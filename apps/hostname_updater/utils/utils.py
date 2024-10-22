@@ -3,6 +3,7 @@ from pyzabbix import ZabbixAPI
 from django.conf import settings
 import paramiko
 import logging
+from core.settings import ssh_user
 
 logger = logging.getLogger('hostname_updater')
 
@@ -36,11 +37,11 @@ def update_telegraf_host(ip_address, new_hostname):
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
         try:
-            ssh.connect(ip_address, port=22, username='gtsuser', password='oIpPCQw08r8TMZ', timeout=30)
+            ssh.connect(ip_address, port=22, username=settings.ssh_user['username'], password=settings.ssh_user['password'], timeout=30)
             logger.info(f"Connected to {ip_address} on port 22")
         except Exception as e:
             logger.warning(f"Failed to connect to {ip_address} on port 22: {str(e)}. Trying port 28822...")
-            ssh.connect(ip_address, port=28822, username='gtsuser', password='oIpPCQw08r8TMZ', timeout=30)
+            ssh.connect(ip_address, port=28822, username=settings.ssh_user['username'], password=settings.ssh_user['password'], timeout=30)
             logger.info(f"Connected to {ip_address} on port 28822")
 
         update_telegraf_command = f'sudo sed -i \'s/^  hostname = .*/  hostname = "{new_hostname}"/\' /etc/telegraf/telegraf.conf'
@@ -94,12 +95,12 @@ def update_telegraf_zabbix_config(ip_address, new_hostname, zabbix_server, zabbi
 
         try:
             # 连接到目标主机 (默认端口 22)
-            ssh.connect(ip_address, port=22, username='gtsuser', password='oIpPCQw08r8TMZ', timeout=30)
+            ssh.connect(ip_address, port=22, username=settings.ssh_user['username'], password=settings.ssh_user['password'], timeout=30)
             logger.info(f"Connected to {ip_address} on port 22")
         except Exception as e:
             # 如果默认端口 22 连接失败，尝试端口 28822
             logger.warning(f"Failed to connect to {ip_address} on port 22: {str(e)}. Trying port 28822...")
-            ssh.connect(ip_address, port=28822, username='gtsuser', password='oIpPCQw08r8TMZ', timeout=30)
+            ssh.connect(ip_address, port=28822, username=settings.ssh_user['username'], password=settings.ssh_user['password'], timeout=30)
             logger.info(f"Connected to {ip_address} on port 28822")
 
         # 修改 Zabbix Agent 配置文件

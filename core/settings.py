@@ -373,6 +373,11 @@ ZABBIX_TELEGRAF_CONFIG = {
     },
 }
 
+ssh_user = {
+    'username':'gts_user',
+    'password':'LBX2HxpYSOY2GzDwRpT2rxKGnTyjiGiV1IkNKV',
+}
+
 
 opt_LARK_WEBHOOK_URL = 'https://open.larksuite.com/open-apis/bot/v2/hook/96c73090-2a31-4a6c-9721-c5c291c7777c'
 spc_LARK_WEBHOOK_URL = 'https://open.larksuite.com/open-apis/bot/v2/hook/9b4a8d03-8db4-4e2a-903d-459de038b814'
