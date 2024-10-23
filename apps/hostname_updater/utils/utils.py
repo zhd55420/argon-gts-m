@@ -32,10 +32,14 @@ def get_zabbix_host_id(ip_address, zapi):
     return result[0]['hostid'] if result else None
 
 def update_telegraf_host(ip_address, new_hostname):
+    telegraf_errors = []  # 存储 Telegraf 错误信息
+    zabbix_errors = []    # 存储 Zabbix 错误信息
+
     try:
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
+        # 尝试连接到 SSH
         try:
             ssh.connect(ip_address, port=22, username=ssh_user['username'], password=ssh_user['password'], timeout=30)
             logger.info(f"Connected to {ip_address} on port 22")
@@ -44,32 +48,31 @@ def update_telegraf_host(ip_address, new_hostname):
             ssh.connect(ip_address, port=28822, username=ssh_user['username'], password=ssh_user['password'], timeout=30)
             logger.info(f"Connected to {ip_address} on port 28822")
 
-        update_telegraf_command = f'sed -i \'s/^  hostname = .*/  hostname = "{new_hostname}"/\' /etc/telegraf/telegraf.conf'
-        stdin, stdout, stderr = ssh.exec_command(update_telegraf_command)
-        stderr_text = stderr.read().decode()
-        if stderr_text:
-            raise Exception(f"Error modifying Telegraf config: {stderr_text}")
+        # 修改 Telegraf 主机名并获取错误信息（如果有）
+        telegraf_error = modify_telegraf_hostname(ssh, new_hostname)
+        if telegraf_error:
+            telegraf_errors.append(telegraf_error["message"])
 
-        stdin, stdout, stderr = ssh.exec_command('systemctl restart telegraf')
-        stderr_text = stderr.read().decode()
-        if stderr_text:
-            raise Exception(f"Error restarting Telegraf: {stderr_text}")
-
-        update_zabbix_command = f'sed -i \'s/^Hostname=.*/Hostname={new_hostname}/\' /etc/zabbix/zabbix_agentd.conf'
-        stdin, stdout, stderr = ssh.exec_command(update_zabbix_command)
-        stderr_text = stderr.read().decode()
-        if stderr_text:
-            raise Exception(f"Error modifying Zabbix Agent config: {stderr_text}")
-
-        stdin, stdout, stderr = ssh.exec_command('systemctl restart zabbix-agent')
-        stderr_text = stderr.read().decode()
-        if stderr_text:
-            raise Exception(f"Error restarting Zabbix Agent: {stderr_text}")
+        # 修改 Zabbix Agent 主机名并获取错误信息（如果有）
+        zabbix_error = modify_zabbix_hostname(ssh, new_hostname)
+        if zabbix_error:
+            zabbix_errors.append(zabbix_error["message"])
 
         ssh.close()
-        message = f"Successfully updated Telegraf and Zabbix Agent hostname for {ip_address} to {new_hostname}."
-        logger.info(message)
-        return {"success": True, "message": message}
+
+        # 构造返回消息
+        if telegraf_errors or zabbix_errors:
+            message = "Some errors occurred during the update:\n"
+            if telegraf_errors:
+                message += "Telegraf Errors:\n" + "\n".join(telegraf_errors) + "\n"
+            if zabbix_errors:
+                message += "Zabbix Errors:\n" + "\n".join(zabbix_errors)
+            logger.error(message)
+            return {"success": False, "message": message}
+        else:
+            message = f"Successfully updated Telegraf and Zabbix Agent hostname for {ip_address} to {new_hostname}."
+            logger.info(message)
+            return {"success": True, "message": message}
 
     except paramiko.AuthenticationException:
         error_message = f"ssh Authentication failed when connecting to {ip_address}"
@@ -84,9 +87,43 @@ def update_telegraf_host(ip_address, new_hostname):
         logger.error(error_message)
         return {"success": False, "message": error_message}
     except Exception as e:
-        error_message = f"Failed to update Telegraf and Zabbix Agent hostname for {ip_address} to {new_hostname}. Error: {str(e)}"
+        error_message = f"Failed to update hostnames for {ip_address}. Error: {str(e)}"
         logger.error(error_message, exc_info=True)
         return {"success": False, "message": error_message}
+
+
+def modify_telegraf_hostname(ssh, new_hostname):
+    update_telegraf_command = f'sed -i \'s/^  hostname = .*/  hostname = "{new_hostname}"/\' /etc/telegraf/telegraf.conf'
+    stdin, stdout, stderr = ssh.exec_command(update_telegraf_command)
+    stderr_text = stderr.read().decode()
+    if stderr_text:
+        return {"success": False, "message": f"Error modifying Telegraf config: {stderr_text}"}
+
+    # 重启 Telegraf 服务
+    stdin, stdout, stderr = ssh.exec_command('systemctl restart telegraf')
+    stderr_text = stderr.read().decode()
+    if stderr_text:
+        return {"success": False, "message": f"Error restarting Telegraf: {stderr_text}"}
+
+    logger.info("Telegraf hostname updated successfully.")
+    return None  # 返回 None 表示成功
+
+
+def modify_zabbix_hostname(ssh, new_hostname):
+    update_zabbix_command = f'sed -i \'s/^Hostname=.*/Hostname={new_hostname}/\' /etc/zabbix/zabbix_agentd.conf'
+    stdin, stdout, stderr = ssh.exec_command(update_zabbix_command)
+    stderr_text = stderr.read().decode()
+    if stderr_text:
+        return {"success": False, "message": f"Error modifying Zabbix Agent config: {stderr_text}"}
+
+    # 重启 Zabbix Agent 服务
+    stdin, stdout, stderr = ssh.exec_command('systemctl restart zabbix-agent')
+    stderr_text = stderr.read().decode()
+    if stderr_text:
+        return {"success": False, "message": f"Error restarting Zabbix Agent: {stderr_text}"}
+
+    logger.info("Zabbix Agent hostname updated successfully.")
+    return None  # 返回 None 表示成功
 
 def update_telegraf_zabbix_config(ip_address, new_hostname, zabbix_server, zabbix_server_active, influxdb_urls, influxdb_username, influxdb_password, influxdb_database):
     try:
