@@ -93,14 +93,20 @@ def update_telegraf_host(ip_address, new_hostname):
 
 
 def modify_telegraf_hostname(ssh, new_hostname):
-    update_telegraf_command = f'sed -i \'s/^  hostname = .*/  hostname = "{new_hostname}"/\' /etc/telegraf/telegraf.conf'
+    # 检查 Telegraf 配置文件是否存在
+    check_command = 'test -f /etc/telegraf/telegraf.conf'
+    stdin, stdout, stderr = ssh.exec_command(check_command)
+    if stderr.read().decode():
+        return {"success": False, "message": "Telegraf config file does not exist: /etc/telegraf/telegraf.conf"}
+
+    update_telegraf_command = f'sudo sed -i \'s/^  hostname = .*/  hostname = "{new_hostname}"/\' /etc/telegraf/telegraf.conf'
     stdin, stdout, stderr = ssh.exec_command(update_telegraf_command)
     stderr_text = stderr.read().decode()
     if stderr_text:
         return {"success": False, "message": f"Error modifying Telegraf config: {stderr_text}"}
 
     # 重启 Telegraf 服务
-    stdin, stdout, stderr = ssh.exec_command('systemctl restart telegraf')
+    stdin, stdout, stderr = ssh.exec_command('sudo systemctl restart telegraf')
     stderr_text = stderr.read().decode()
     if stderr_text:
         return {"success": False, "message": f"Error restarting Telegraf: {stderr_text}"}
@@ -110,14 +116,14 @@ def modify_telegraf_hostname(ssh, new_hostname):
 
 
 def modify_zabbix_hostname(ssh, new_hostname):
-    update_zabbix_command = f'sed -i \'s/^Hostname=.*/Hostname={new_hostname}/\' /etc/zabbix/zabbix_agentd.conf'
+    update_zabbix_command = f'sudo sed -i \'s/^Hostname=.*/Hostname={new_hostname}/\' /etc/zabbix/zabbix_agentd.conf'
     stdin, stdout, stderr = ssh.exec_command(update_zabbix_command)
     stderr_text = stderr.read().decode()
     if stderr_text:
         return {"success": False, "message": f"Error modifying Zabbix Agent config: {stderr_text}"}
 
     # 重启 Zabbix Agent 服务
-    stdin, stdout, stderr = ssh.exec_command('systemctl restart zabbix-agent')
+    stdin, stdout, stderr = ssh.exec_command('sudo systemctl restart zabbix-agent')
     stderr_text = stderr.read().decode()
     if stderr_text:
         return {"success": False, "message": f"Error restarting Zabbix Agent: {stderr_text}"}
