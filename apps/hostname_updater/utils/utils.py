@@ -131,7 +131,8 @@ def modify_zabbix_hostname(ssh, new_hostname):
     logger.info("Zabbix Agent hostname updated successfully.")
     return None  # 返回 None 表示成功
 
-def update_telegraf_zabbix_config(ip_address, new_hostname, zabbix_server, zabbix_server_active, influxdb_urls, influxdb_username, influxdb_password, influxdb_database):
+def update_telegraf_zabbix_config(ip_address, new_hostname, zabbix_server, zabbix_server_active, influxdb_urls,
+                                  influxdb_username, influxdb_password, influxdb_database):
     try:
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -143,20 +144,45 @@ def update_telegraf_zabbix_config(ip_address, new_hostname, zabbix_server, zabbi
         except Exception as e:
             # 如果默认端口 22 连接失败，尝试端口 28822
             logger.warning(f"Failed to connect to {ip_address} on port 22: {str(e)}. Trying port 28822...")
-            ssh.connect(ip_address, port=28822, username=ssh_user['username'], password=ssh_user['password'], timeout=30)
+            ssh.connect(ip_address, port=28822, username=ssh_user['username'], password=ssh_user['password'],
+                        timeout=30)
             logger.info(f"Connected to {ip_address} on port 28822")
 
+        # 分别更新 Zabbix 和 Telegraf 配置
+        zabbix_result = update_zabbix_config(ssh, new_hostname, zabbix_server, zabbix_server_active)
+        telegraf_result = update_telegraf_config(ssh, influxdb_urls, influxdb_username, influxdb_password,
+                                                 influxdb_database)
+
+        ssh.close()
+
+        return {
+            "success": zabbix_result['success'] and telegraf_result['success'],
+            "messages": [zabbix_result['message'], telegraf_result['message']]
+        }
+
+    except paramiko.AuthenticationException:
+        return {"success": False, "message": f"SSH Authentication failed for {ip_address}"}
+    except Exception as e:
+        logger.error(f"Error updating Zabbix and Telegraf configuration for {ip_address}: {e}")
+        return {"success": False, "message": str(e)}
+def update_zabbix_config(ssh, new_hostname, zabbix_server, zabbix_server_active):
+    try:
         # 修改 Zabbix Agent 配置文件
-        update_zabbix_command = f'sed -i \'s/^Hostname=.*/Hostname={new_hostname}/\' /etc/zabbix/zabbix_agentd.conf'
-        update_zabbix_command += f' && sed -i \'s/^Server=.*/Server={zabbix_server}/\' /etc/zabbix/zabbix_agentd.conf'
-        update_zabbix_command += f' && sed -i \'s/^ServerActive=.*/ServerActive={zabbix_server_active}/\' /etc/zabbix/zabbix_agentd.conf'
+        update_zabbix_command = (
+            f"sudo sed -i 's/^Hostname=.*/Hostname={new_hostname}/' /etc/zabbix/zabbix_agentd.conf && "
+            f"sudo sed -i 's/^Server=.*/Server={zabbix_server}/' /etc/zabbix/zabbix_agentd.conf && "
+            f"sudo sed -i 's/^ServerActive=.*/ServerActive={zabbix_server_active}/' /etc/zabbix/zabbix_agentd.conf"
+        )
         stdin, stdout, stderr = ssh.exec_command(update_zabbix_command)
         stderr_text = stderr.read().decode()
         if stderr_text:
             raise Exception(f"Error modifying Zabbix Agent config: {stderr_text}")
 
         # 添加 UserParameter 到 Zabbix 配置
-        add_user_parameter = 'echo \'UserParameter=ifname, /bin/bash /etc/zabbix/discover_network_interfaces.sh\' | tee -a /etc/zabbix/zabbix_agentd.conf'
+        add_user_parameter = (
+            "echo 'UserParameter=ifname, /bin/bash /etc/zabbix/discover_network_interfaces.sh' | "
+            "sudo tee -a /etc/zabbix/zabbix_agentd.conf"
+        )
         stdin, stdout, stderr = ssh.exec_command(add_user_parameter)
         stderr_text = stderr.read().decode()
         if stderr_text:
@@ -167,32 +193,50 @@ def update_telegraf_zabbix_config(ip_address, new_hostname, zabbix_server, zabbi
         local_script_path = '/home/gtsuser/remote_script/discover_network_interfaces.sh'  # 本地脚本的路径
         remote_script_path = '/etc/zabbix/discover_network_interfaces.sh'
         sftp.put(local_script_path, remote_script_path)
-        logger.info(f"Uploaded discover_network_interfaces.sh to {ip_address}:{remote_script_path}")
+        logger.info(f"Uploaded discover_network_interfaces.sh to {ssh.getpeername()[0]}:{remote_script_path}")
 
         # 设置 discover_network_interfaces.sh 文件权限为可执行
-        stdin, stdout, stderr = ssh.exec_command(f'chmod +x {remote_script_path}')
+        stdin, stdout, stderr = ssh.exec_command(f'sudo chmod +x {remote_script_path}')
         stderr_text = stderr.read().decode()
         if stderr_text:
             raise Exception(f"Error setting executable permission on {remote_script_path}: {stderr_text}")
 
+        # 重启 Zabbix Agent 服务
+        ssh.exec_command('sudo systemctl restart zabbix-agent')
+
+        return {
+            "success": True,
+            "message": f"Successfully updated Zabbix configuration on {ssh.getpeername()[0]}."
+        }
+    except Exception as e:
+        logger.error(f"Error updating Zabbix configuration: {e}")
+        return {"success": False, "message": str(e)}
+
+
+def update_telegraf_config(ssh, influxdb_urls, influxdb_username, influxdb_password, influxdb_database):
+    try:
         # 修改 Telegraf 配置的 [[outputs.influxdb]] 部分
-        update_telegraf_command = f'sed -i \'/[[outputs.influxdb]]/,/^$/{{s/urls = \\[.*\\]/urls = {influxdb_urls}/;s/username = .*/username = "{influxdb_username}"/;s/password = .*/password = "{influxdb_password}"/;s/database = .*/database = "{influxdb_database}"/}}\' /etc/telegraf/telegraf.conf'
+        update_telegraf_command = (
+            f"sudo sed -i '/[[outputs.influxdb]]/,/^$/{{s/urls = \\[.*\\]/urls = {influxdb_urls}/;"
+            f"s/username = .*/username = \"{influxdb_username}\"/;"
+            f"s/password = .*/password = \"{influxdb_password}\"/;"
+            f"s/database = .*/database = \"{influxdb_database}\"/}}' /etc/telegraf/telegraf.conf"
+        )
         stdin, stdout, stderr = ssh.exec_command(update_telegraf_command)
         stderr_text = stderr.read().decode()
         if stderr_text:
             raise Exception(f"Error modifying Telegraf config: {stderr_text}")
 
-        # 重启 Zabbix Agent 和 Telegraf 服务
-        ssh.exec_command('systemctl restart zabbix-agent')
-        ssh.exec_command('systemctl restart telegraf')
+        # 重启 Telegraf 服务
+        ssh.exec_command('sudo systemctl restart telegraf')
 
-        ssh.close()
-        message = f"Successfully updated Zabbix and Telegraf configuration for {ip_address}."
-        logger.info(message)
-        return {"success": True, "message": message}
-
-    except paramiko.AuthenticationException:
-        return {"success": False, "message": f"SSH Authentication failed for {ip_address}"}
+        return {
+            "success": True,
+            "message": f"Successfully updated Telegraf configuration on {ssh.getpeername()[0]}."
+        }
     except Exception as e:
-        logger.error(f"Error updating Zabbix and Telegraf configuration for {ip_address}: {e}")
+        logger.error(f"Error updating Telegraf configuration: {e}")
         return {"success": False, "message": str(e)}
+
+
+
