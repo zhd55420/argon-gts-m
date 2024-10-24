@@ -154,15 +154,25 @@ def update_zabbix_config(ssh, new_hostname, zabbix_server, zabbix_server_active)
         return {"success": False, "message": str(e)}
 
 
+def escape_ampersand(input_string):
+    """Escape only the '&' character for sed."""
+    return input_string.replace('&', '\\&')
+
 def update_telegraf_config(ssh, influxdb_urls, influxdb_username, influxdb_password, influxdb_database):
     try:
+        # 只对&字符转义
+        escaped_password = escape_ampersand(influxdb_password)
+        escaped_urls = escape_ampersand(influxdb_urls)
+
         # 更新 Telegraf 配置
-        telegraf_command = f"""sudo sed -i -e 's|^\\(\\s*urls = \\).*|\\1{influxdb_urls}|' \
-    -e 's|^\\(\\s*username = \\).*|\\1"{influxdb_username}"|' \
-    -e 's|^\\(\\s*password = \\).*|\\1"{influxdb_password}"|' \
-    -e 's|^\\(\\s*database = \\).*|\\1"{influxdb_database}"|' \
-    /etc/telegraf/telegraf.conf
-    """
+        telegraf_command = f"""sudo sed -i -e 's|^\\(\\s*password = "\\).*|\\1{escaped_password}|' \
+-e 's|^\\(\\s*username = \\).*|  username = "{influxdb_username}"|' \
+-e 's|^\\(\\s*database = \\).*|  database = "{influxdb_database}"|' \
+-e 's|^\\(\\s*urls = \\).*|  urls = [{escaped_urls}]|' \
+/etc/telegraf/telegraf.conf
+"""
+
+        # 执行命令来更新配置
         stdin, stdout, stderr = ssh.exec_command(telegraf_command)
         stderr_text = stderr.read().decode()
         if stderr_text:
