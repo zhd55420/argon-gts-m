@@ -146,7 +146,7 @@ def update_zabbix_config(ssh, new_hostname, zabbix_server, zabbix_server_active)
 
         # 添加用户参数
         add_user_parameter = (
-            "echo 'UserParameter=ifname, /bin/bash /etc/zabbix/discover_network_interfaces.sh' >> /etc/zabbix/zabbix_agentd.conf"
+            "sudo echo 'UserParameter=ifname, /bin/bash /etc/zabbix/discover_network_interfaces.sh' >> /etc/zabbix/zabbix_agentd.conf"
         )
         stdin, stdout, stderr = ssh.exec_command(add_user_parameter)
         stderr_text = stderr.read().decode()
@@ -179,13 +179,12 @@ def update_zabbix_config(ssh, new_hostname, zabbix_server, zabbix_server_active)
 def update_telegraf_config(ssh, influxdb_urls, influxdb_username, influxdb_password, influxdb_database):
     try:
         # 更新 Telegraf 配置
-        telegraf_command = (
-            f"sudo sed -i '/\\[outputs.influxdb\\],/^$/{{"
-            f"s|urls = \\[.*\\]|urls = {influxdb_urls}|;"
-            f"s|username = .*|username = \"{influxdb_username}\"|;"
-            f"s|password = .*|password = \"{influxdb_password}\"|;"
-            f"s|database = .*|database = \"{influxdb_database}\"|}}' /etc/telegraf/telegraf.conf"
-        )
+        telegraf_command = f"""sudo sed -i -e 's|^\\(\\s*urls = \\).*|\\1{influxdb_urls}|' \
+    -e 's|^\\(\\s*username = \\).*|\\1"{influxdb_username}"|' \
+    -e 's|^\\(\\s*password = \\).*|\\1"{influxdb_password}"|' \
+    -e 's|^\\(\\s*database = \\).*|\\1"{influxdb_database}"|' \
+    /etc/telegraf/telegraf.conf
+    """
         stdin, stdout, stderr = ssh.exec_command(telegraf_command)
         stderr_text = stderr.read().decode()
         if stderr_text:
