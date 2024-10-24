@@ -328,11 +328,12 @@ def select_zabbix_telegraf_config(request):
 
                     # 根据结果添加成功或错误消息
                     if result['success']:
-                        success_messages.append(f"{ip_address}: {result['message']}")
+                        success_messages.append(f"{ip_address}: {result['messages']}")
                         logger.info(f"{user_info} successfully updated IP {ip_address} to hostname '{new_hostname}'")
                     else:
-                        error_messages.append(f"{ip_address}: {result['message']}")
-                        logger.error(f"{user_info} failed to update IP {ip_address}: {result['message']}")
+                        error_messages.append(f"{ip_address}: {result.get('message', 'Unknown error')}")
+                        logger.error(
+                            f"{user_info} failed to update IP {ip_address}: {result.get('message', 'Unknown error')}")
                 except ValueError:
                     error_messages.append(f"Invalid format for line: {line}")
                     logger.error(f"{user_info} provided invalid input format for line: {line}")
