@@ -163,12 +163,8 @@ def update_telegraf_config(ssh, influxdb_urls, influxdb_username, influxdb_passw
         # 只对&字符转义
         escaped_password = escape_ampersand(influxdb_password)
 
-        # 将传入的 URLs 列表转换为正确的格式
-        if isinstance(influxdb_urls, list):
-            # 假设列表只包含一个 URL，并保持双引号
-            escaped_urls = f'["{escape_ampersand(influxdb_urls[0])}"]'
-        else:
-            escaped_urls = f'["{escape_ampersand(influxdb_urls)}"]'
+        # 确保 URLs 是字符串，格式为 '["http://example.com"]'
+        escaped_urls = escape_ampersand(influxdb_urls)
 
         # 更新 Telegraf 配置
         telegraf_command = f"""sudo sed -i -e 's|^\\(\\s*password = "\\).*|\\1{escaped_password}\\"|' \
@@ -177,7 +173,6 @@ def update_telegraf_config(ssh, influxdb_urls, influxdb_username, influxdb_passw
 -e 's|^\\(\\s*urls = \\).*|  urls = {escaped_urls}|' \
 /etc/telegraf/telegraf.conf
 """
-
         # 执行命令来更新配置
         stdin, stdout, stderr = ssh.exec_command(telegraf_command)
         stderr_text = stderr.read().decode()
