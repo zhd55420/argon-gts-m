@@ -165,12 +165,12 @@ def update_telegraf_config(ssh, influxdb_urls, influxdb_username, influxdb_passw
         escaped_urls = escape_ampersand(influxdb_urls)
 
         # 更新 Telegraf 配置
-        telegraf_command = f"""sudo sed -i -e 's|^\\(\\s*password = "\\).*|\\1{escaped_password}|' \
--e 's|^\\(\\s*username = \\).*|  username = "{influxdb_username}"|' \
--e 's|^\\(\\s*database = \\).*|  database = "{influxdb_database}"|' \
--e 's|^\\(\\s*urls = \\).*|  urls = [{escaped_urls}]|' \
-/etc/telegraf/telegraf.conf
-"""
+        telegraf_command = f"""sudo sed -i -e 's|^\\(\\s*password = "\\).*|\\1{escaped_password}\\"|' \
+        -e 's|^\\(\\s*username = \\).*|  username = "{influxdb_username}"|' \
+        -e 's|^\\(\\s*database = \\).*|  database = "{influxdb_database}"|' \
+        -e 's|^\\(\\s*urls = \\).*|  urls = [{escaped_urls}]|' \
+        /etc/telegraf/telegraf.conf
+        """
 
         # 执行命令来更新配置
         stdin, stdout, stderr = ssh.exec_command(telegraf_command)
