@@ -144,28 +144,6 @@ def update_zabbix_config(ssh, new_hostname, zabbix_server, zabbix_server_active)
         if stderr_text:
             raise Exception(f"Error modifying Zabbix config: {stderr_text}")
 
-        # 添加用户参数
-        add_user_parameter = (
-            "sudo echo 'UserParameter=ifname, /bin/bash /etc/zabbix/discover_network_interfaces.sh' >> /etc/zabbix/zabbix_agentd.conf"
-        )
-        stdin, stdout, stderr = ssh.exec_command(add_user_parameter)
-        stderr_text = stderr.read().decode()
-        if stderr_text:
-            raise Exception(f"Error adding UserParameter to Zabbix Agent config: {stderr_text}")
-
-        # 上传脚本
-        sftp = ssh.open_sftp()
-        local_script_path = '/home/gtsuser/remote_script/discover_network_interfaces.sh'
-        remote_script_path = '/etc/zabbix/discover_network_interfaces.sh'
-        sftp.put(local_script_path, remote_script_path)
-        logger.info(f"Uploaded discover_network_interfaces.sh to {ssh.getpeername()[0]}:{remote_script_path}")
-
-        # 设置文件权限
-        stdin, stdout, stderr = ssh.exec_command(f'sudo chmod +x {remote_script_path}')
-        stderr_text = stderr.read().decode()
-        if stderr_text:
-            raise Exception(f"Error setting executable permission on {remote_script_path}: {stderr_text}")
-
         # 重启 Zabbix Agent
         ssh.exec_command('sudo systemctl restart zabbix-agent')
 
