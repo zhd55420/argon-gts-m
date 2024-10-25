@@ -54,7 +54,6 @@ def update_hostname(request):
                             success_messages_str = ', '.join(success_messages)
                             logger.info(user_info + "  :  " + success_messages_str)
                         else:
-                            error_messages.append(message)
                             message = f"Failed to update hostname for {ip_address}.not found in Zabbix."
                             error_messages.append(message)
 
