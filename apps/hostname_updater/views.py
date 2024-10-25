@@ -54,7 +54,6 @@ def update_hostname(request):
                             success_messages_str = ', '.join(success_messages)
                             logger.info(user_info + "  :  " + success_messages_str)
                         else:
-                            message = f"Failed to update hostname for {ip_address}."
                             error_messages.append(message)
 
                             # 将 `error_messages` 列表转换为字符串，用逗号或其他分隔符连接

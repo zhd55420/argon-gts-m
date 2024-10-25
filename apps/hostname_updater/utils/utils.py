@@ -25,7 +25,9 @@ def update_zabbix_hostname(ip_address, new_hostname, server_name):
             name=new_hostname
         )
         return True
-    return False
+    else:
+        # 如果找不到主机ID，返回False和错误消息
+        return False, f"Host with IP address {ip_address} not found in Zabbix."
 
 def get_zabbix_host_id(ip_address, zapi):
     result = zapi.host.get(filter={"ip": ip_address}, output=['hostid'])
@@ -58,7 +60,6 @@ def update_telegraf_host(ip_address, new_hostname):
         if zabbix_error:
             zabbix_errors.append(zabbix_error["message"])
 
-        ssh.close()
 
         # 构造返回消息
         if telegraf_errors or zabbix_errors:
@@ -90,6 +91,8 @@ def update_telegraf_host(ip_address, new_hostname):
         error_message = f"Failed to update hostnames for {ip_address}. Error: {str(e)}"
         logger.error(error_message, exc_info=True)
         return {"success": False, "message": error_message}
+    finally:
+        ssh.close()
 
 
 def modify_telegraf_hostname(ssh, new_hostname):
@@ -223,6 +226,8 @@ def update_telegraf_zabbix_config(ip_address, new_hostname, zabbix_server, zabbi
     except Exception as e:
         logger.error(f"Error updating Zabbix and Telegraf configuration for {ip_address}: {e}")
         return {"success": False, "message": str(e)}
+    finally:
+        ssh.close()
 
 
 
