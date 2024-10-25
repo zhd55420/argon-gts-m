@@ -25,9 +25,7 @@ def update_zabbix_hostname(ip_address, new_hostname, server_name):
             name=new_hostname
         )
         return True
-    else:
-        # 如果找不到主机ID，返回False和错误消息
-        return False, f"Host with IP address {ip_address} not found in Zabbix."
+    return False
 
 def get_zabbix_host_id(ip_address, zapi):
     result = zapi.host.get(filter={"ip": ip_address}, output=['hostid'])

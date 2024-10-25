@@ -55,6 +55,8 @@ def update_hostname(request):
                             logger.info(user_info + "  :  " + success_messages_str)
                         else:
                             error_messages.append(message)
+                            message = f"Failed to update hostname for {ip_address}.not found in Zabbix."
+                            error_messages.append(message)
 
                             # 将 `error_messages` 列表转换为字符串，用逗号或其他分隔符连接
                             error_messages_str = ', '.join(error_messages)  # 可以根据需要更改分隔符为其他字符
