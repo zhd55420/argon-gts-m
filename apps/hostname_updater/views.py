@@ -9,7 +9,7 @@ from .forms import HostnameUpdateForm,ResourceGroupForm, PRTForm, TrackerForm,Za
 from .utils.utils import update_zabbix_hostname, update_telegraf_host, get_zabbix_connection, get_zabbix_host_id, \
     update_telegraf_zabbix_config
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, permission_required
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -21,6 +21,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 
 logger = logging.getLogger('hostname_updater')
 @login_required(login_url="/login/")
+@permission_required('apps_authentication.can_access_update_hostname', raise_exception=True)
 def update_hostname(request):
     # 获取当前用户的信息
     user_info = f"User: {request.user.username} (ID: {request.user.id})" if request.user.is_authenticated else "Anonymous User"
@@ -102,6 +103,7 @@ def save_resource_groups(data):
 
 
 @login_required(login_url="/login/")
+@permission_required('apps_authentication.can_access_manage_resources', raise_exception=True)
 def manage_resources(request):
     messages = []
     resource_groups = load_resource_groups()
@@ -216,6 +218,7 @@ def manage_resources(request):
 
 
 @login_required(login_url="/login/")
+@permission_required('apps_authentication.can_access_manage_resources', raise_exception=True)
 def zabbix_delete(request):
 
 
@@ -280,6 +283,7 @@ def zabbix_delete(request):
 
 
 @login_required(login_url="/login/")
+@permission_required('apps_authentication.can_access_select_zabbix_telegraf_config', raise_exception=True)
 def select_zabbix_telegraf_config(request):
     # 获取当前用户的信息
     user_info = f"User: {request.user.username} (ID: {request.user.id})" if request.user.is_authenticated else "Anonymous User"
@@ -367,7 +371,8 @@ def load_brands_config():
 def save_brands_config(config_data):
     with open(BRANDS_YAML_PATH, 'w') as file:
         yaml.safe_dump(config_data, file)
-
+@login_required(login_url="/login/")
+@permission_required('apps_authentication.can_access_manage_brands_trackers', raise_exception=True)
 def manage_brands_trackers(request):
     messages = []
     selected_business_unit = None

@@ -1,9 +1,10 @@
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, permission_required
 from django.shortcuts import render
 from .forms import JSONInputForm
 import json
 from django.contrib.auth.decorators import login_required
 @login_required(login_url="/login/")
+@permission_required('apps_authentication.can_access_json_filter_view', raise_exception=True)
 def json_filter_view(request):
     form = JSONInputForm()
     filtered_data = []
