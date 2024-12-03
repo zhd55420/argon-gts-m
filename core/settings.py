@@ -358,8 +358,8 @@ ZABBIX_TELEGRAF_CONFIG = {
         'influxdb_password': 'WWjK4&9@',
     },
     'vod': {
-        'zabbix_server': '135.148.52.229,135.148.53.180',
-        'zabbix_server_active': '135.148.52.229,135.148.53.180',
+        'zabbix_server': '51.81.49.196,135.148.53.180',
+        'zabbix_server_active': '51.81.49.196,135.148.53.180',
         'influxdb_urls': '["http://metric02.b2030.host:8086"]',
         'influxdb_username': 'uploader',
         'influxdb_password': '&N3wUw3s',
