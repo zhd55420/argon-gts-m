@@ -6,8 +6,8 @@ from django.shortcuts import render, redirect
 from django.http import HttpResponse,HttpResponseRedirect
 import logging
 from .forms import HostnameUpdateForm,ResourceGroupForm, PRTForm, TrackerForm,ZabbixDeleteForm
-from .utils.utils import update_zabbix_hostname, update_telegraf_host, get_zabbix_connection, get_zabbix_host_id, \
-    update_telegraf_zabbix_config
+from .utils.utils import get_zabbix_connection, get_zabbix_host_id, \
+    update_telegraf_zabbix_config,process_hostname_update
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.shortcuts import render
@@ -43,40 +43,27 @@ def update_hostname(request):
                 for line in bulk_lines:
                     try:
                         ip_address, new_hostname = map(str.strip, line.split(','))
-                        result = update_zabbix_hostname(ip_address, new_hostname, zabbix_server)
-                        if result:
-                            telegraf_result = update_telegraf_host(ip_address, new_hostname)
-                            message = f"Successfully updated hostname for {ip_address} to {new_hostname}."
-                            success_messages.append(message)
-                            success_messages.append(telegraf_result['message']) if telegraf_result[
-                                'success'] else error_messages.append(telegraf_result['message'])
 
-                            # 将列表转换为字符串，使用join方法
-                            success_messages_str = ', '.join(success_messages)
-                            logger.info(user_info + "  :  " + success_messages_str)
+                        # 调用更新逻辑
+                        update_result = process_hostname_update(ip_address, new_hostname, zabbix_server, user_info)
+
+                        # 根据结果分类消息
+                        if update_result['success']:
+                            success_messages.append(update_result['message'])
                         else:
-                            message = f"Failed to update hostname for {ip_address}.not found in Zabbix."
-                            error_messages.append(message)
+                            error_messages.append(update_result['message'])
 
-                            # 将 `error_messages` 列表转换为字符串，用逗号或其他分隔符连接
-                            error_messages_str = ', '.join(error_messages)  # 可以根据需要更改分隔符为其他字符
+                    except ValueError:
+                        # 输入格式错误
+                        error_message = f"Invalid format in line '{line}'. Expected 'IP,hostname'."
+                        error_messages.append(error_message)
+                        logger.error(f"{user_info} : {error_message}")
 
-                            # 正确拼接字符串进行日志记录
-                            logger.error(user_info + "  :  " + error_messages_str)
                     except Exception as e:
-                        message = f"Error processing line '{line}': {str(e)}"
-                        error_messages.append(message)
-                        # 将 `error_messages` 列表转换为字符串，用逗号或其他分隔符连接
-                        error_messages_str = ', '.join(error_messages)  # 可以根据需要更改分隔符为其他字符
-
-                        # 正确拼接字符串进行日志记录
-                        logger.error(user_info + "  :  " + error_messages_str)
-
-
-    else:
-        form = HostnameUpdateForm()
-        form.fields['zabbix_server'].choices = zabbix_servers
-
+                        # 捕获其他异常
+                        error_message = f"Error processing line '{line}': {str(e)}"
+                        error_messages.append(error_message)
+                        logger.error(f"{user_info} : {error_message}")
     context = {
         'form': form,
         'success_messages': success_messages,

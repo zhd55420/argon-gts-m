@@ -15,7 +15,7 @@ def get_zabbix_connection(server_name):
     zapi = ZabbixAPI(url=server_config['API_URL'],user=server_config['API_USER'],password=server_config['API_PASSWORD'])
     return zapi
 
-def update_zabbix_hostname(ip_address, new_hostname, server_name):
+def update_zabbix_web_hostname(ip_address, new_hostname, server_name):
     zapi = get_zabbix_connection(server_name)
     host_id = get_zabbix_host_id(ip_address, zapi)
     if host_id:
@@ -31,66 +31,55 @@ def get_zabbix_host_id(ip_address, zapi):
     result = zapi.host.get(filter={"ip": ip_address}, output=['hostid'])
     return result[0]['hostid'] if result else None
 
-def update_telegraf_host(ip_address, new_hostname):
-    telegraf_errors = []  # 存储 Telegraf 错误信息
-    zabbix_errors = []    # 存储 Zabbix 错误信息
+def connect_with_multiple_ports(ssh, ip_address, username, password, ports=(22, 28822), timeout=30):
+    for port in ports:
+        try:
+            ssh.connect(ip_address, port=port, username=ssh_user['username'], password=ssh_user['password'], timeout=timeout)
+            logger.info(f"Connected to {ip_address} on port {port}")
+            return True
+        except Exception as e:
+            logger.warning(f"Failed to connect to {ip_address} on port {port}: {str(e)}")
+    logger.error(f"Failed to connect to {ip_address} on all ports: {ports}")
+    return False
+
+
+def update_server_config_host(ip_address, new_hostname):
+    errors = {"telegraf": [], "zabbix_agent": []}
 
     try:
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-        # 尝试连接到 SSH
-        try:
-            ssh.connect(ip_address, port=22, username=ssh_user['username'], password=ssh_user['password'], timeout=30)
-            logger.info(f"Connected to {ip_address} on port 22")
-        except Exception as e:
-            logger.warning(f"Failed to connect to {ip_address} on port 22: {str(e)}. Trying port 28822...")
-            ssh.connect(ip_address, port=28822, username=ssh_user['username'], password=ssh_user['password'], timeout=30)
-            logger.info(f"Connected to {ip_address} on port 28822")
+        if not connect_with_multiple_ports(ssh, ip_address, ssh_user['username'], ssh_user['password']):
+            return {"success": False, "message": f"Failed to connect to {ip_address} on all ports"}
 
-        # 修改 Telegraf 主机名并获取错误信息（如果有）
-        telegraf_error = modify_telegraf_hostname(ssh, new_hostname)
-        if telegraf_error:
-            telegraf_errors.append(telegraf_error["message"])
+        # 更新各服务配置
+        update_tasks = [
+            ("telegraf", modify_telegraf_hostname),
+            ("zabbix_agent", modify_zabbix_hostname),
+        ]
 
-        # 修改 Zabbix Agent 主机名并获取错误信息（如果有）
-        zabbix_error = modify_zabbix_hostname(ssh, new_hostname)
-        if zabbix_error:
-            zabbix_errors.append(zabbix_error["message"])
+        for service, task in update_tasks:
+            error = task(ssh, new_hostname)
+            if error:
+                errors[service].append(error["message"])
 
-
-        # 构造返回消息
-        if telegraf_errors or zabbix_errors:
-            message = "Some errors occurred during the update:\n"
-            if telegraf_errors:
-                message += "Telegraf Errors:\n" + "\n".join(telegraf_errors) + "\n"
-            if zabbix_errors:
-                message += "Zabbix Errors:\n" + "\n".join(zabbix_errors)
-            logger.error(message)
-            return {"success": False, "message": message}
+        # 返回结果
+        if any(errors.values()):
+            return {
+                "success": False,
+                "telegraf": {"success": not errors["telegraf"], "message": "\n".join(errors["telegraf"])},
+                "zabbix_agent": {"success": not errors["zabbix_agent"], "message": "\n".join(errors["zabbix_agent"])},
+            }
         else:
-            message = f"Successfully updated Telegraf and Zabbix Agent hostname for {ip_address} to {new_hostname}."
-            logger.info(message)
-            return {"success": True, "message": message}
+            return {"success": True, "message": f"Successfully updated all services for {ip_address} to {new_hostname}."}
 
-    except paramiko.AuthenticationException:
-        error_message = f"ssh Authentication failed when connecting to {ip_address}"
-        logger.error(error_message)
-        return {"success": False, "message": error_message}
-    except paramiko.SSHException as sshException:
-        error_message = f"Unable to establish SSH connection to {ip_address}: {str(sshException)}"
-        logger.error(error_message)
-        return {"success": False, "message": error_message}
-    except paramiko.BadHostKeyException as badHostKeyException:
-        error_message = f"Unable to verify server's host key for {ip_address}: {str(badHostKeyException)}"
-        logger.error(error_message)
-        return {"success": False, "message": error_message}
     except Exception as e:
-        error_message = f"Failed to update hostnames for {ip_address}. Error: {str(e)}"
-        logger.error(error_message, exc_info=True)
-        return {"success": False, "message": error_message}
+        logger.error(f"Unexpected error for {ip_address}: {str(e)}", exc_info=True)
+        return {"success": False, "message": f"Unexpected error: {str(e)}"}
     finally:
         ssh.close()
+
 
 
 def modify_telegraf_hostname(ssh, new_hostname):
@@ -131,6 +120,35 @@ def modify_zabbix_hostname(ssh, new_hostname):
 
     logger.info("Zabbix Agent hostname updated successfully.")
     return None  # 返回 None 表示成功
+
+def process_hostname_update(ip_address, new_hostname, zabbix_server, user_info):
+    """
+    封装主机名更新逻辑，更新 Zabbix 和服务器配置。
+    """
+    try:
+        # 更新 Zabbix 中的主机名
+        zabbix_result = update_zabbix_web_hostname(ip_address, new_hostname, zabbix_server)
+
+        if not zabbix_result:
+            message = f"Failed to update hostname for {ip_address}. Not found in Zabbix."
+            logger.error(f"{user_info} : {message}")
+            return {"success": False, "message": message}
+
+        # 更新服务器配置
+        server_result = update_server_config_host(ip_address, new_hostname)
+
+        if server_result['success']:
+            message = f"Successfully updated hostname for {ip_address} to {new_hostname}."
+            logger.info(f"{user_info} : {message}")
+            return {"success": True, "message": message + " " + server_result['message']}
+        else:
+            logger.error(f"{user_info} : {server_result['message']}")
+            return {"success": False, "message": server_result['message']}
+
+    except Exception as e:
+        message = f"Error updating hostname for {ip_address}: {str(e)}"
+        logger.error(f"{user_info} : {message}", exc_info=True)
+        return {"success": False, "message": message}
 
 def update_zabbix_config(ssh, new_hostname, zabbix_server, zabbix_server_active):
     try:
