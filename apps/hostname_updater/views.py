@@ -44,14 +44,15 @@ def update_hostname(request):
                     try:
                         ip_address, new_hostname = map(str.strip, line.split(','))
 
-                        # 调用更新逻辑
-                        update_result = process_hostname_update(ip_address, new_hostname, zabbix_server, user_info)
-
-                        # 根据结果分类消息
-                        if update_result['success']:
-                            success_messages.append(update_result['message'])
-                        else:
-                            error_messages.append(update_result['message'])
+                        # 调用 process_hostname_update 处理更新
+                        process_hostname_update(
+                            ip_address,
+                            new_hostname,
+                            zabbix_server,
+                            user_info,
+                            success_messages,
+                            error_messages
+                        )
 
                     except ValueError:
                         # 输入格式错误

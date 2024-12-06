@@ -123,7 +123,7 @@ def modify_zabbix_hostname(ssh, new_hostname):
 
 def process_hostname_update(ip_address, new_hostname, zabbix_server, user_info, success_messages, error_messages):
     """
-    封装主机名更新逻辑，更新 Zabbix 和服务器配置，并返回成功或错误消息到对应的消息列表。
+    封装主机名更新逻辑，更新 Zabbix 和服务器配置，并将成功或失败消息分别记录到 success_messages 和 error_messages。
     """
     try:
         # 更新 Zabbix 中的主机名
@@ -131,32 +131,32 @@ def process_hostname_update(ip_address, new_hostname, zabbix_server, user_info, 
 
         # 记录 Zabbix 更新的结果
         if zabbix_result:
-            success_message = f"Successfully updated hostname for {ip_address} in Zabbix."
-            success_messages.append(success_message)
-            logger.info(f"{user_info} : {success_message}")
+            zabbix_success_message = f"Successfully updated hostname for {ip_address} in Zabbix."
+            success_messages.append(zabbix_success_message)
+            logger.info(f"{user_info} : {zabbix_success_message}")
         else:
-            error_message = f"Failed to update hostname for {ip_address}. Not found in Zabbix."
-            error_messages.append(error_message)
-            logger.error(f"{user_info} : {error_message}")
+            zabbix_error_message = f"Failed to update hostname for {ip_address}. Not found in Zabbix."
+            error_messages.append(zabbix_error_message)
+            logger.error(f"{user_info} : {zabbix_error_message}")
 
         # 更新服务器配置（Telegraf 和 Zabbix Agent）
         server_result = update_server_config_host(ip_address, new_hostname)
 
         # 记录服务器配置更新的结果
         if server_result['success']:
-            success_message = f"Successfully updated hostname for {ip_address} on the server."
-            success_messages.append(success_message)
-            logger.info(f"{user_info} : {success_message}")
+            server_success_message = server_result['message']
+            success_messages.append(server_success_message)
+            logger.info(f"{user_info} : {server_success_message}")
         else:
-            error_message = f"Failed to update hostname for {ip_address} on the server. Error: {server_result['message']}"
-            error_messages.append(error_message)
-            logger.error(f"{user_info} : {error_message}")
+            server_error_message = server_result['message']
+            error_messages.append(server_error_message)
+            logger.error(f"{user_info} : {server_error_message}")
 
-        # 返回合并后的消息
-        if error_messages:
-            return {"success": False, "message": '\n'.join(error_messages)}
-        else:
-            return {"success": True, "message": '\n'.join(success_messages)}
+        # 返回合并后的结果（既有成功，也可能有失败）
+        return {
+            "success": not error_messages,  # 如果 error_messages 为空则返回 True，否则 False
+            "message": '\n'.join(success_messages + error_messages)
+        }
 
     except Exception as e:
         # 捕获任何异常并记录错误
@@ -164,7 +164,8 @@ def process_hostname_update(ip_address, new_hostname, zabbix_server, user_info, 
         error_messages.append(error_message)
         logger.error(f"{user_info} : {error_message}", exc_info=True)
 
-        return {"success": False, "message": '\n'.join(error_messages)}
+        return {"success": False, "message": error_message}
+
 
 
 def update_zabbix_config(ssh, new_hostname, zabbix_server, zabbix_server_active):
