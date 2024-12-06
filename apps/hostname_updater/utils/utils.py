@@ -172,7 +172,7 @@ def update_zabbix_config(ssh, new_hostname, zabbix_server, zabbix_server_active)
     try:
         # 更新 Zabbix Agent 配置
         zabbix_update_command = (
-            f"sudo sed -i 's/^Hostname=.*/Hostname={new_hostname}/' /etc/zabbix/zabbix_agentd.conf && "
+            f"sudo sed -i \'s/^Hostname=.*/Hostname={new_hostname}/\' /etc/zabbix/zabbix_agentd.conf'&& "
             f"sudo sed -i 's/^Server=.*/Server={zabbix_server}/' /etc/zabbix/zabbix_agentd.conf && "
             f"sudo sed -i 's/^ServerActive=.*/ServerActive={zabbix_server_active}/' /etc/zabbix/zabbix_agentd.conf"
         )
@@ -195,7 +195,7 @@ def escape_ampersand(input_string):
     """Escape only the '&' character for sed."""
     return input_string.replace('&', '\\&')
 
-def update_telegraf_config(ssh, influxdb_urls, influxdb_username, influxdb_password, influxdb_database):
+def update_telegraf_config(ssh, new_hostname,influxdb_urls, influxdb_username, influxdb_password, influxdb_database):
     try:
         # 只对&字符转义
         escaped_password = escape_ampersand(influxdb_password)
@@ -208,9 +208,16 @@ def update_telegraf_config(ssh, influxdb_urls, influxdb_username, influxdb_passw
 -e 's|^\\(\\s*username = \\).*|  username = "{influxdb_username}"|' \
 -e 's|^\\(\\s*database = \\).*|  database = "{influxdb_database}"|' \
 -e 's|^\\(\\s*urls = \\).*|  urls = {escaped_urls}|' \
+
 /etc/telegraf/telegraf.conf
 """
         # 执行命令来更新配置
+        update_telegraf_command = f'sudo sed -i \'s/^  hostname = .*/  hostname = "{new_hostname}"/\' /etc/telegraf/telegraf.conf'
+        stdin, stdout, stderr = ssh.exec_command(update_telegraf_command)
+        stderr_text = stderr.read().decode()
+        if stderr_text:
+            return {"success": False, "message": f"Error modifying Telegraf config: {stderr_text}"}
+
         stdin, stdout, stderr = ssh.exec_command(telegraf_command)
         stderr_text = stderr.read().decode()
         if stderr_text:
@@ -246,7 +253,7 @@ def update_telegraf_zabbix_config(ip_address, new_hostname, zabbix_server, zabbi
         zabbix_result = update_zabbix_config(ssh, new_hostname, zabbix_server, zabbix_server_active)
 
         # 更新 Telegraf 配置
-        telegraf_result = update_telegraf_config(ssh, influxdb_urls, influxdb_username, influxdb_password,
+        telegraf_result = update_telegraf_config(ssh, new_hostname, influxdb_urls, influxdb_username, influxdb_password,
                                                  influxdb_database)
 
         # 返回综合结果
