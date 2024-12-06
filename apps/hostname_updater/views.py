@@ -64,6 +64,10 @@ def update_hostname(request):
                         error_message = f"Error processing line '{line}': {str(e)}"
                         error_messages.append(error_message)
                         logger.error(f"{user_info} : {error_message}")
+    else:
+        form = HostnameUpdateForm()
+        form.fields['zabbix_server'].choices = zabbix_servers
+
     context = {
         'form': form,
         'success_messages': success_messages,
