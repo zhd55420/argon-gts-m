@@ -172,7 +172,7 @@ def update_zabbix_config(ssh, new_hostname, zabbix_server, zabbix_server_active)
     try:
         # 更新 Zabbix Agent 配置
         zabbix_update_command = (
-            f"sudo sed -i \'s/^Hostname=.*/Hostname={new_hostname}/\' /etc/zabbix/zabbix_agentd.conf'&& "
+            f"sudo sed -i \'s/^Hostname=.*/Hostname={new_hostname}/\' /etc/zabbix/zabbix_agentd.conf && "
             f"sudo sed -i 's/^Server=.*/Server={zabbix_server}/' /etc/zabbix/zabbix_agentd.conf && "
             f"sudo sed -i 's/^ServerActive=.*/ServerActive={zabbix_server_active}/' /etc/zabbix/zabbix_agentd.conf"
         )
