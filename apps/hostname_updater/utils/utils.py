@@ -208,7 +208,6 @@ def update_telegraf_config(ssh, new_hostname,influxdb_urls, influxdb_username, i
 -e 's|^\\(\\s*username = \\).*|  username = "{influxdb_username}"|' \
 -e 's|^\\(\\s*database = \\).*|  database = "{influxdb_database}"|' \
 -e 's|^\\(\\s*urls = \\).*|  urls = {escaped_urls}|' \
-
 /etc/telegraf/telegraf.conf
 """
         # 执行命令来更新配置
