@@ -26,7 +26,7 @@ def json_filter_view(request):
                 if 'result' in data:
                     for item in data['result']:
                         # 筛选出 bw 为 0 的数据
-                        if item.get('bw') == 0:
+                        if item.get('bw') == 0 and item.get('streamStatus') == 1:
                             # 如果有 extraTag 筛选器，按需过滤
                             if extra_tag_filter:
                                 if item.get('extraTag') == extra_tag_filter:
