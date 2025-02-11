@@ -66,11 +66,10 @@ def update_server_config_host(ip_address, new_hostname):
 
         # 返回结果
         if any(errors.values()):
-            return {
-                "success": False,
-                "telegraf": {"success": not errors["telegraf"], "message": "\n".join(errors["telegraf"])},
-                "zabbix_agent": {"success": not errors["zabbix_agent"], "message": "\n".join(errors["zabbix_agent"])},
-            }
+            error_message = "Errors occurred during update:\n"
+            error_message += f"Telegraf: {', '.join(errors['telegraf'])}\n"
+            error_message += f"Zabbix Agent: {', '.join(errors['zabbix_agent'])}"
+            return {"success": False, "message": error_message}
         else:
             return {"success": True, "message": f"Successfully updated all services for {ip_address} to {new_hostname}."}
 
