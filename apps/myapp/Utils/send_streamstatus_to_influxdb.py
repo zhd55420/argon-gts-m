@@ -52,7 +52,7 @@ def fetch_and_process_stream_data(api_url, measurement_name):
 
         client = InfluxDBClient(host='15.204.133.239', port=8086, database='rapid_stream', username='uploader',
                                 password='bja!d7BB')
-        client.write_points(points, database='rapid_stream',batch_size=1000)
+        client.write_points(points, database='rapid_stream',batch_size=2000)
         client.close()
         logger.info(f"Running Task for {measurement_name} :add {points}")
     except Exception as e:
