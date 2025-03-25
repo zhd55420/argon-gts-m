@@ -38,7 +38,7 @@ def fetch_and_process_stream_data(api_url, measurement_name):
                     api_url,
                     data=REQUEST_TEMPLATE,
                     headers={"Content-Type": "application/json"},
-                    timeout=(3, 40)
+                    timeout=(5,45)
                 )
                 res.raise_for_status()
 
