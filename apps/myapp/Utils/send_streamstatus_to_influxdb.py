@@ -8,83 +8,88 @@ from filelock import FileLock
 
 logger = logging.getLogger('streamstatus')
 
-client = InfluxDBClient(host='15.204.133.239', port=8086, database='rapid_stream', username='uploader',
-                        password='bja!d7BB')
+# 全局单例客户端（保持长连接）
+INFLUX_CLIENT = InfluxDBClient(
+    host='15.204.133.239',
+    port=8086,
+    database='rapid_stream',
+    username='uploader',
+    password='bja!d7BB',
+    pool_size=10  # 启用连接池
+)
+
+# 预定义请求模板（避免重复生成）
+REQUEST_TEMPLATE = json.dumps({
+    "streamRequest": {"source": ""},
+    "gooseStreamRequest": {"source": ""}
+})
+
 
 def fetch_and_process_stream_data(api_url, measurement_name):
     lock = FileLock(f"/tmp/{measurement_name}.lock", timeout=58)
     try:
         with lock:
-            start = time.time()
-            HEADERS = {
-                "Content-Type": "application/json ;charset=utf-8 "
-            }
-            data_request = {
-                "streamRequest": {
-                    "source": ""
-                },
-                "gooseStreamRequest": {
-                    "source": ""
-                }
-            }
-            json_data = json.dumps(data_request)
-            res = requests.post(api_url, data=json_data, headers=HEADERS,timeout=(5, 30),)
-            now_time = datetime.datetime.utcnow().replace(
-                    second=0, microsecond=0
-                ).isoformat() + "Z"
-            points = []
-            for e in json.loads(res.text)['data']:
-                masterStreamStatus = e['streamStatus']['masterStreamStatus'] is not None
-                transcodeStreamStatus = e['streamStatus']['transcodeStreamStatus'] is not None
-                channelReceiverStreamStatus = e['streamStatus']['channelReceiverStreamStatus'] is not None
-                bandWidth = e['streamStatus']['masterStreamStatus']['bw'] if masterStreamStatus else 0
+            start_time = time.time()
+            timestamp = datetime.datetime.utcnow().replace(second=0, microsecond=0).isoformat() + "Z"
 
-                point = {
+            # 复用Session提升网络性能
+            with requests.Session() as session:
+                res = session.post(
+                    api_url,
+                    data=REQUEST_TEMPLATE,
+                    headers={"Content-Type": "application/json"},
+                    timeout=(3, 25)
+                )
+                res.raise_for_status()
+
+                # 流式解析提升大响应处理速度
+                data = res.json()['data']
+                points = [{
                     "measurement": measurement_name,
                     "tags": {
-                        "stream_id": e['streamResponse']['streamId'],
-                        "source": e['streamResponse']['source'],
-                        "signalType": e['streamResponse']['signalType']
+                        "stream_id": str(e['streamResponse']['streamId']),
+                        "source": str(e['streamResponse']['source']),
+                        "signalType": str(e['streamResponse']['signalType'])
                     },
-                    "time": now_time,
+                    "time": timestamp,
                     "fields": {
-                        "stream": e['streamResponse']['streamId'],
-                        "masterStatus": masterStreamStatus,
-                        "master_server_id": e['streamResponse']['masterServer']['serverId'],
-                        "transcodeStatus": transcodeStreamStatus,
-                        "forward_server_id": e['streamResponse']['forwardServer']['serverId'],
-                        "receiverStatus": channelReceiverStreamStatus,
-                        "bandWidth": bandWidth
+                        "masterStatus": bool(e['streamStatus']['masterStreamStatus']),
+                        "transcodeStatus": bool(e['streamStatus']['transcodeStreamStatus']),
+                        "receiverStatus": bool(e['streamStatus']['channelReceiverStreamStatus']),
+                        "bandWidth": e['streamStatus']['masterStreamStatus'].get('bw', 0) if e['streamStatus'][
+                            'masterStreamStatus'] else 0,
+                        "master_server_id": str(e['streamResponse']['masterServer']['serverId']),
+                        "forward_server_id": str(e['streamResponse']['forwardServer']['serverId'])
                     }
-                }
-                points.append(point)
+                } for e in data]
 
-                if points:
-                    try:
-                        client.write_points(points, database='rapid_stream',batch_size=5000)
-                        logger.info(
-                            f"[{measurement_name}] 写入 {len(points)} 条数据 | "
-                            f"耗时 {time.time() - start:.1f}s"
-                        )
-                    except Exception as e:
-                        logger.error(f"[{measurement_name}] 写入失败: {str(e)}")
-                        # 记录失败数据
-                        with open(f"/tmp/{measurement_name}_failed_{now_time}.json", "w") as f:
-                            json.dump(points, f)
+            # 批量写入优化
+            if points:
+                try:
+                    INFLUX_CLIENT.write_points(
+                        points,
+                        batch_size=5000,
+                        time_precision='s'
+                    )
+                    logger.info(
+                        f"[{measurement_name}] 写入成功 | 数量:{len(points)} | 耗时:{time.time() - start_time:.1f}s")
+                except Exception as e:
+                    logger.error(f"[{measurement_name}] 写入失败: {str(e)}")
 
-
-            client.write_points(points, database='rapid_stream',batch_size=1500)
-            client.close()
-            logger.info(f"Running Task for {measurement_name} :add {points}")
     except Exception as e:
-        logger.error(f"Error in Task for {measurement_name}: {str(e)}")
+        logger.error(f"[{measurement_name}] 任务异常: {str(e)}")
 
 
+# 任务入口保持简洁
 def all_stream_task():
-    api_url = "http://3.15.111.189:2082/api/rapidStreamStatus/query/v1"
-    fetch_and_process_stream_data(api_url, "rapid_stream_status")
+    fetch_and_process_stream_data(
+        "http://3.15.111.189:2082/api/rapidStreamStatus/query/v1",
+        "rapid_stream_status"
+    )
 
 
 def all_goose_stream_task():
-    api_url = "http://54.237.33.107:2082/api/rapidStreamStatus/query/v1"
-    fetch_and_process_stream_data(api_url, "goose_rapid_stream_status")
+    fetch_and_process_stream_data(
+        "http://54.237.33.107:2082/api/rapidStreamStatus/query/v1",
+        "goose_rapid_stream_status"
+    )
