@@ -57,7 +57,7 @@ def fetch_and_process_stream_data(api_url, measurement_name):
             client = get_influx_client()
 
             # 关键时间对齐操作
-            now_time = datetime.datetime.utcnow().replace(second=0, microsecond=0)
+            now_time = datetime.datetime.utcnow().replace(second=0, microsecond=0).isoformat() + "Z"
 
             try:
                 # 带超时的API请求
@@ -111,7 +111,7 @@ def fetch_and_process_stream_data(api_url, measurement_name):
                     for i in range(0, len(points), batch_size):
                         batch = points[i:i + batch_size]
                         try:
-                            client.write(
+                            client.write_points(
                                 batch,
                                 protocol='line',
                                 precision='s'
