@@ -114,7 +114,6 @@ def fetch_and_process_stream_data(api_url, measurement_name):
                             client.write_points(
                                 batch,
                                 protocol='line',
-                                precision='s'
                             )
                             logger.debug(f"批次 {i // batch_size} 写入成功")
                         except Exception as batch_e:
