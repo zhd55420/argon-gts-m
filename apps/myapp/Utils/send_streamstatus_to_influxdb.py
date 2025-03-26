@@ -1,98 +1,108 @@
+import asyncio
 import datetime
-import time
 import json
-import requests
-from influxdb import InfluxDBClient
 import logging
-from concurrent.futures import ThreadPoolExecutor
+from influxdb import InfluxDBClient
+import aiohttp  # 异步HTTP客户端
 
 logger = logging.getLogger('streamstatus')
 
-# 全局资源预初始化（启动时执行一次）
-INFLUX_CLIENT = InfluxDBClient(
-    host='15.204.133.239',
-    port=8086,
-    database='rapid_stream',
-    username='uploader',
-    password='bja!d7BB',
-    pool_size=20
-)
-HTTP_SESSION = requests.Session()
-REQUEST_TEMPLATE = json.dumps({
-    "streamRequest": {"source": ""},
-    "gooseStreamRequest": {"source": ""}
-})
-TIMEOUT = (3, 55)  # 总超时58秒（3秒连接+55秒响应）
+# 配置常量
+CONFIG = {
+    "influx": {
+        "host": "15.204.133.239",
+        "port": 8086,
+        "database": "rapid_stream",
+        "username": "uploader",
+        "password": "bja!d7BB",
+        "timeout": 15
+    },
+    "http": {
+        "timeout": aiohttp.ClientTimeout(total=55),  # 总超时控制
+        "chunk_size": 1024 * 512  # 512KB数据块
+    }
+}
 
 
-def fast_process(data, measurement):
-    """极速数据处理（比原方案快3倍）"""
-    now = datetime.datetime.utcnow().replace(second=0, microsecond=0).isoformat() + "Z"
-    return [{
-        "measurement": measurement,
-        "tags": {
-            "stream_id": e['streamResponse']['streamId'],
-            "source": e['streamResponse']['source'],
-            "signalType": e['streamResponse']['signalType']
-        },
-        "time": now,
-        "fields": {
-            "masterStatus": bool(e['streamStatus']['masterStreamStatus']),
-            "transcodeStatus": bool(e['streamStatus']['transcodeStreamStatus']),
-            "receiverStatus": bool(e['streamStatus']['channelReceiverStreamStatus']),
-            "bandWidth": e['streamStatus']['masterStreamStatus'].get('bw', 0) if e['streamStatus'][
-                'masterStreamStatus'] else 0,
-            "master_server_id": e['streamResponse']['masterServer']['serverId'],
-            "forward_server_id": e['streamResponse']['forwardServer']['serverId']
-        }
-    } for e in data]
+# 异步Influx写入器（基于线程池）
+async def async_write_points(client, points):
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(
+        None,  # 使用默认线程池
+        lambda: client.write_points(points, batch_size=10000)
+    )
 
 
-def fetch_and_write(api_url, measurement):
-    """全流程处理函数"""
+async def async_fetch(session, api_url, measurement):
+    """异步处理核心逻辑"""
     try:
         # 异步获取数据
-        with HTTP_SESSION.post(
+        async with session.post(
                 api_url,
-                data=REQUEST_TEMPLATE,
-                headers={"Content-Type": "application/json"},
-                timeout=TIMEOUT
+                json={"streamRequest": {"source": ""}, "gooseStreamRequest": {"source": ""}},
+                headers={"Content-Type": "application/json"}
         ) as res:
-            data = res.json()['data']
+            res.raise_for_status()
 
-        # 并行处理+写入
-        with ThreadPoolExecutor(max_workers=2) as executor:
-            # 数据分片处理
-            chunks = [data[i::2] for i in range(2)]  # 分成2片
+            # 流式处理数据
+            points = []
+            async for chunk in res.content.iter_chunked(CONFIG["http"]["chunk_size"]):
+                data_chunk = json.loads(chunk.decode())['data']
 
-            # 并行处理
-            futures = [
-                executor.submit(fast_process, chunk, measurement)
-                for chunk in chunks
-            ]
+                # 并行处理数据转换
+                timestamp = datetime.datetime.utcnow().replace(second=0, microsecond=0).isoformat() + "Z"
+                batch = [{
+                    "measurement": measurement,
+                    "tags": {
+                        "stream_id": str(item['streamResponse']['streamId']),
+                        "source": str(item['streamResponse']['source']),
+                        "signalType": str(item['streamResponse']['signalType'])
+                    },
+                    "time": timestamp,
+                    "fields": {
+                        "masterStatus": bool(item['streamStatus'].get('masterStreamStatus')),
+                        "transcodeStatus": bool(item['streamStatus'].get('transcodeStreamStatus')),
+                        "receiverStatus": bool(item['streamStatus'].get('channelReceiverStreamStatus')),
+                        "bandWidth": item['streamStatus'].get('masterStreamStatus', {}).get('bw', 0),
+                        "master_server_id": str(item['streamResponse']['masterServer']['serverId']),
+                        "forward_server_id": str(item['streamResponse']['forwardServer']['serverId'])
+                    }
+                } for item in data_chunk]
 
-            # 批量写入
-            for future in futures:
-                points = future.result()
-                if points:
-                    INFLUX_CLIENT.write_points(points, batch_size=10000)
+                points.extend(batch)
 
-        return True
+                # 达到批次立即写入（非阻塞）
+                if len(points) >= 5000:
+                    await async_write_points(influx_client, points[:5000])
+                    points = points[5000:]
+
+            # 写入剩余数据
+            if points:
+                await async_write_points(influx_client, points)
+
     except Exception as e:
-        logger.error(f"[{measurement}] 流程异常: {str(e)}")
-        return False
+        logger.error(f"[{measurement}] 异步处理失败: {str(e)}")
 
 
-# 定时任务入口（保持1分钟间隔）
+# 入口函数
+async def main(api_url, measurement):
+    # 初始化连接
+    influx_client = InfluxDBClient(**CONFIG["influx"])
+    async with aiohttp.ClientSession(timeout=CONFIG["http"]["timeout"]) as session:
+        await async_fetch(session, api_url, measurement)
+    influx_client.close()
+
+
+# 包装为同步函数供crontab调用
 def all_stream_task():
-    fetch_and_write(
+    asyncio.run(main(
         "http://3.15.111.189:2082/api/rapidStreamStatus/query/v1",
         "rapid_stream_status"
-    )
+    ))
 
 
 def all_goose_stream_task():
-    fetch_and_write(
+    asyncio.run(main(
         "http://54.237.33.107:2082/api/rapidStreamStatus/query/v1",
         "goose_rapid_stream_status"
-    )
+    ))
