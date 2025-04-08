@@ -5,19 +5,6 @@ import json
 from django.contrib.auth.decorators import login_required
 @login_required(login_url="/login/")
 @permission_required('apps_authentication.can_access_json_filter_view', raise_exception=True)
-
-def get_bw_value(item):
-    """安全获取 bw 的值，兼容 float 和 dict 类型"""
-    bw = item.get('bw')
-    if bw is None:
-        return 0
-    elif isinstance(bw, dict):
-        return bw.get('parsedValue', 0)
-    elif isinstance(bw, (int, float)):
-        return float(bw)
-    else:
-        return 0  # 其他情况默认返回 0
-
 def json_filter_view(request):
     form = JSONInputForm()
     filtered_data = []
@@ -76,3 +63,15 @@ def json_filter_view(request):
         'selected_extra_tag': extra_tag_filter
     }
     return render(request, 'jsonfilter/json_filter.html', context)
+
+def get_bw_value(item):
+    """安全获取 bw 的值，兼容 float 和 dict 类型"""
+    bw = item.get('bw')
+    if bw is None:
+        return 0
+    elif isinstance(bw, dict):
+        return bw.get('parsedValue', 0)
+    elif isinstance(bw, (int, float)):
+        return float(bw)
+    else:
+        return 0  # 其他情况默认返回 0
