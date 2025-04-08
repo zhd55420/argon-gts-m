@@ -25,8 +25,8 @@ def json_filter_view(request):
                 # 假设你的 JSON 数据有 result 字段
                 if 'result' in data:
                     for item in data['result']:
-                        # 筛选出 bw 为 0 的数据
-                        if item.get('bw') == 0 and item.get('streamStatus') == 1:
+                        # 检查 bw.parsedValue == 0 且 streamStatus == 1
+                        if item.get('bw', {}).get('parsedValue') == 0 and item.get('streamStatus') == 1:
                             # 如果有 extraTag 筛选器，按需过滤
                             if extra_tag_filter:
                                 if item.get('extraTag') == extra_tag_filter:
@@ -34,7 +34,7 @@ def json_filter_view(request):
                                         'remark': item.get('remark', ''),
                                         'sourceName': item.get('sourceName', ''),
                                         'urls': item.get('urls', []),
-                                        'bw': item.get('bw', ''),
+                                        'bw': item.get('bw', {}).get('parsedValue', ''),  # 取 parsedValue
                                         'extraTag': item.get('extraTag', ''),
                                         'streamStatus': item.get('streamStatus', ''),
                                     })
@@ -44,7 +44,7 @@ def json_filter_view(request):
                                     'remark': item.get('remark', ''),
                                     'sourceName': item.get('sourceName', ''),
                                     'urls': item.get('urls', []),
-                                    'bw': item.get('bw', ''),
+                                    'bw': item.get('bw', {}).get('parsedValue', ''),  # 取 parsedValue
                                     'extraTag': item.get('extraTag', ''),
                                     'streamStatus': item.get('streamStatus', ''),
                                 })
