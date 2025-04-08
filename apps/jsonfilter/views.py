@@ -25,8 +25,8 @@ def json_filter_view(request):
                 # 假设你的 JSON 数据有 result 字段
                 if 'result' in data:
                     for item in data['result']:
-                        # 检查 bw.parsedValue == 0 且 streamStatus == 1
-                        if item.get('bw', {}).get('parsedValue') == 0 and item.get('streamStatus') == 1:
+                        # 检查 connectedStatus == 0 且 streamStatus == 1
+                        if item.get('connectedStatus') == 0 and item.get('streamStatus') == 1:
                             # 如果有 extraTag 筛选器，按需过滤
                             if extra_tag_filter:
                                 if item.get('extraTag') == extra_tag_filter:
@@ -38,16 +38,7 @@ def json_filter_view(request):
                                         'extraTag': item.get('extraTag', ''),
                                         'streamStatus': item.get('streamStatus', ''),
                                     })
-                            else:
-                                # 如果没有 extraTag 筛选器，显示所有符合条件的项
-                                filtered_data.append({
-                                    'remark': item.get('remark', ''),
-                                    'sourceName': item.get('sourceName', ''),
-                                    'urls': item.get('urls', []),
-                                    'bw': item.get('bw', {}).get('parsedValue', ''),  # 取 parsedValue
-                                    'extraTag': item.get('extraTag', ''),
-                                    'streamStatus': item.get('streamStatus', ''),
-                                })
+
 
             except json.JSONDecodeError:
                 form.add_error('json_data', 'Invalid JSON data.')
