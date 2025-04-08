@@ -5,10 +5,24 @@ import json
 from django.contrib.auth.decorators import login_required
 @login_required(login_url="/login/")
 @permission_required('apps_authentication.can_access_json_filter_view', raise_exception=True)
+
+def get_bw_value(item):
+    """安全获取 bw 的值，兼容 float 和 dict 类型"""
+    bw = item.get('bw')
+    if bw is None:
+        return 0
+    elif isinstance(bw, dict):
+        return bw.get('parsedValue', 0)
+    elif isinstance(bw, (int, float)):
+        return float(bw)
+    else:
+        return 0  # 其他情况默认返回 0
+
 def json_filter_view(request):
     form = JSONInputForm()
     filtered_data = []
     extra_tag_filter = None
+
 
     if request.method == 'POST':
         form = JSONInputForm(request.POST)
@@ -25,8 +39,8 @@ def json_filter_view(request):
                 # 假设你的 JSON 数据有 result 字段
                 if 'result' in data:
                     for item in data['result']:
-                        # 检查 connectedStatus == 0 且 streamStatus == 1
-                        if item.get('connectedStatus') == 0 and item.get('streamStatus') == 1:
+                        bw_value = get_bw_value(item)  # 获取 bw 的值
+                        if bw_value == 0 and item.get('streamStatus') == 1:
                             # 如果有 extraTag 筛选器，按需过滤
                             if extra_tag_filter:
                                 if item.get('extraTag') == extra_tag_filter:
@@ -34,11 +48,20 @@ def json_filter_view(request):
                                         'remark': item.get('remark', ''),
                                         'sourceName': item.get('sourceName', ''),
                                         'urls': item.get('urls', []),
-                                        'bw': item.get('bw', {}).get('parsedValue', ''),  # 取 parsedValue
+                                        'bw': bw_value,  # 使用解析后的 bw 值
                                         'extraTag': item.get('extraTag', ''),
                                         'streamStatus': item.get('streamStatus', ''),
                                     })
-
+                            else:
+                                # 如果没有 extraTag 筛选器，显示所有符合条件的项
+                                filtered_data.append({
+                                    'remark': item.get('remark', ''),
+                                    'sourceName': item.get('sourceName', ''),
+                                    'urls': item.get('urls', []),
+                                    'bw': bw_value,  # 使用解析后的 bw 值
+                                    'extraTag': item.get('extraTag', ''),
+                                    'streamStatus': item.get('streamStatus', ''),
+                                })
 
             except json.JSONDecodeError:
                 form.add_error('json_data', 'Invalid JSON data.')
