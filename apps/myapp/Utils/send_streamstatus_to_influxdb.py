@@ -29,147 +29,221 @@ REQUEST_TEMPLATE = json.dumps({
 
 
 def process_stream_element(measurementname, element, timestamp):
-    """处理单条流数据，按规则处理空值：
-    - tags中空值传字符串"null"
-    - fields中status类空值传false
-    - fields中其他类型空值传"null"
+    """
+    处理单条流数据，转换为InfluxDB可写入的格式
+
+    功能：
+    1. 处理空值：fields空值传None（InfluxDB会忽略），tags空值传"null"
+    2. 类型统一：指定字段强制转为float，避免类型冲突
+    3. 提取关键信息：从原始数据中提取流标识、状态、音视频参数等
+
+    参数：
+        measurementname: InfluxDB的测量名（类似表名）
+        element: 原始流数据字典（可能为空）
+        timestamp: 纳秒级Unix时间戳（InfluxDB要求的时间格式）
+
+    返回：
+        符合InfluxDB写入格式的字典，或None（处理失败时）
     """
     try:
         if element is None:
             logger.warning("单条流数据为空，跳过处理")
             return None
 
-        # 空值占位符定义
-        TAGS_NULL = "null"  # tags空值
-        FIELDS_STATUS_NULL = False  # status类字段空值
-        FIELDS_OTHER_NULL = "null"  # 其他字段空值
+        # 空值处理规则
+        TAGS_NULL = "null"  # tags不支持None，用"null"占位
+        FIELDS_STATUS_NULL = False  # 状态类字段空值用False
 
-        # -------------------------- 1. 处理streamResponse（基础标识，tags部分） --------------------------
+        # -------------------------- 1. 处理tags（基础标识） --------------------------
         stream_response = element.get('streamResponse') or {}
 
-        # streamId（tags，空值→"null"）
+        # stream_id（tag）
         stream_id = stream_response.get('streamId')
-        stream_id = str(stream_id) if stream_id is not None and stream_id != "" else TAGS_NULL
+        stream_id = str(stream_id) if (stream_id is not None and str(stream_id).strip() != "") else TAGS_NULL
 
-        # source（tags，空值→"null"）
+        # source（tag）
         source = stream_response.get('source')
-        source = str(source) if source is not None and source != "" else TAGS_NULL
+        source = str(source) if (source is not None and str(source).strip() != "") else TAGS_NULL
 
-        # masterServerId（tags，空值→"null"）
+        # master_server_id（tag）
         master_server = stream_response.get('masterServer') or {}
         master_server_id = master_server.get('serverId')
-        master_server_id = str(master_server_id) if master_server_id is not None and master_server_id != "" else TAGS_NULL
+        master_server_id = str(master_server_id) if (
+                    master_server_id is not None and str(master_server_id).strip() != "") else TAGS_NULL
 
-        # forwardServerId（tags，空值→"null"）
+        # forward_server_id（tag）
         forward_server = stream_response.get('forwardServer') or {}
         forward_server_id = forward_server.get('serverId')
-        forward_server_id = str(forward_server_id) if forward_server_id is not None and forward_server_id != "" else TAGS_NULL
+        forward_server_id = str(forward_server_id) if (
+                    forward_server_id is not None and str(forward_server_id).strip() != "") else TAGS_NULL
 
-        # -------------------------- 2. 处理streamStatus（流状态） --------------------------
+        # -------------------------- 2. 标记流状态是否为空 --------------------------
         stream_status = element.get('streamStatus') or {}
-
-        # 处理master_stream状态（标记是否为null）
         master_stream = stream_status.get('masterStreamStatus')
-        if master_stream is None:
-            master_stream = {"is_null": True}
-        else:
-            master_stream["is_null"] = False
-
-        # 处理transcode_stream状态（标记是否为null）
+        is_master_null = master_stream is None
         fwd_stream = stream_status.get('transcodeStreamStatus')
-        if fwd_stream is None:
-            fwd_stream = {"is_null": True}
-        else:
-            fwd_stream["is_null"] = False
+        is_fwd_null = fwd_stream is None
 
-        # -------------------------- 3. 提取视频/音频编码（fields，字符串类） --------------------------
-        # 视频编码（空值→"null"）
-        video_codec = FIELDS_OTHER_NULL
-        if not master_stream.get("is_null"):
+        # 确保非空时为字典（避免后续取值报错）
+        master_stream = master_stream if not is_master_null else {}
+        fwd_stream = fwd_stream if not is_fwd_null else {}
+
+        # -------------------------- 3. 处理fields --------------------------
+        fields = {}
+
+        # 3.1 字符串型字段（空值传None）
+        # video_codec
+        fields['video_codec'] = None
+        if not is_master_null:
             video_streams = master_stream.get('videoStreams', [{}])
             first_video = video_streams[0] if video_streams else {}
-            video_codec_val = first_video.get('codec')
-            video_codec = str(video_codec_val) if video_codec_val is not None and video_codec_val != "" else FIELDS_OTHER_NULL
+            codec_val = first_video.get('codec')
+            if codec_val is not None and str(codec_val).strip() != "":
+                fields['video_codec'] = str(codec_val)
 
-        # 音频编码（空值→"null"）
-        audio_codec = FIELDS_OTHER_NULL
-        if not master_stream.get("is_null"):
+        # audio_codec
+        fields['audio_codec'] = None
+        if not is_master_null:
             audio_streams = master_stream.get('audioStreams', [{}])
             first_audio = audio_streams[0] if audio_streams else {}
-            audio_codec_val = first_audio.get('codec')
-            audio_codec = str(audio_codec_val) if audio_codec_val is not None and audio_codec_val != "" else FIELDS_OTHER_NULL
+            codec_val = first_audio.get('codec')
+            if codec_val is not None and str(codec_val).strip() != "":
+                fields['audio_codec'] = str(codec_val)
 
-        # 主流状态码（空值→"null"）
-        master_status_code = FIELDS_OTHER_NULL
-        if not master_stream.get("is_null"):
+        # master_status_code
+        fields['master_status_code'] = None
+        if not is_master_null:
             code_val = master_stream.get('code')
-            master_status_code = str(code_val) if code_val is not None else FIELDS_OTHER_NULL
+            if code_val is not None:
+                fields['master_status_code'] = str(code_val)
 
-        # -------------------------- 4. 提取字段（Field）：按类型处理空值 --------------------------
-        # 主流状态（status类，空值→false）
-        master_status = FIELDS_STATUS_NULL if master_stream.get("is_null") else bool(master_stream)
+        # forward_heartbeat_time
+        fields['forward_heartbeat_time'] = None
+        if not is_fwd_null:
+            forward_params = fwd_stream.get('parameters', {})
+            heartbeat_val = forward_params.get('last_heartbeat_us_time')
+            if heartbeat_val is not None and str(heartbeat_val).strip() != "":
+                fields['forward_heartbeat_time'] = f"{str(heartbeat_val).replace(' ', 'T')}Z"
 
-        # 转码流状态（status类，空值→false）
-        fwd_status = FIELDS_STATUS_NULL if fwd_stream.get("is_null") else bool(fwd_stream)
+        # 3.2 布尔型状态字段
+        fields['master_status'] = FIELDS_STATUS_NULL if is_master_null else bool(master_stream)
+        fields['fwd_status'] = FIELDS_STATUS_NULL if is_fwd_null else bool(fwd_stream)
 
-        # 带宽（空值→"null"）
-        master_bandwidth = FIELDS_OTHER_NULL
-        if not master_stream.get("is_null"):
+        # 3.3 指定float类型字段（空值传None，有值强制转float）
+        # master_bandwidth
+        fields['master_bandwidth'] = None
+        if not is_master_null:
             bw_val = master_stream.get('bw')
-            master_bandwidth = bw_val if bw_val is not None else FIELDS_OTHER_NULL
+            if bw_val is not None:
+                try:
+                    fields['master_bandwidth'] = float(bw_val)
+                except (ValueError, TypeError):
+                    fields['master_bandwidth'] = None
 
-        # 转码带宽（空值→"null"）
-        fwd_bandwidth = FIELDS_OTHER_NULL
-        if not fwd_stream.get("is_null"):
+        # transcode_bandwidth (fwd_bandwidth)
+        fields['transcode_bandwidth'] = None
+        if not is_fwd_null:
             tc_bw_val = fwd_stream.get('bw')
-            fwd_bandwidth = tc_bw_val if tc_bw_val is not None else FIELDS_OTHER_NULL
+            if tc_bw_val is not None:
+                try:
+                    fields['transcode_bandwidth'] = float(tc_bw_val)
+                except (ValueError, TypeError):
+                    fields['transcode_bandwidth'] = None
 
-        # 延迟（空值→"null"）
-        avg_rtt = FIELDS_OTHER_NULL
-        if not master_stream.get("is_null"):
+        # avg_rtt（微秒转毫秒）
+        fields['avg_rtt'] = None
+        if not is_master_null:
             brt_client = master_stream.get('parameters', {}).get('brt_client', {})
             rtt_val = brt_client.get('avg_packet_rtt')
             if rtt_val is not None:
-                avg_rtt = round(rtt_val / 1000, 2)  # 微秒转毫秒
-            else:
-                avg_rtt = FIELDS_OTHER_NULL
+                try:
+                    fields['avg_rtt'] = round(float(rtt_val) / 1000, 2)
+                except (ValueError, TypeError):
+                    fields['avg_rtt'] = None
 
-        # 丢包数（空值→"null"）
-        drop_block_count = FIELDS_OTHER_NULL
-        recv_block_count = FIELDS_OTHER_NULL
-        if not master_stream.get("is_null"):
+        # drop_block_count
+        fields['drop_block_count'] = None
+        if not is_master_null:
             brt_client = master_stream.get('parameters', {}).get('brt_client', {})
             brtmicro_client = brt_client.get('brtmicro_client', {})
             drop_val = brtmicro_client.get('drop_block_cnt')
-            recv_val = brtmicro_client.get('recv_block_cnt')
-            drop_block_count = drop_val if drop_val is not None else FIELDS_OTHER_NULL
-            recv_block_count = recv_val if recv_val is not None else FIELDS_OTHER_NULL
+            if drop_val is not None:
+                try:
+                    fields['drop_block_count'] = float(drop_val)
+                except (ValueError, TypeError):
+                    fields['drop_block_count'] = None
 
-        # 音视频参数（空值→"null"）
-        video_width = video_height = video_bitrate = FIELDS_OTHER_NULL
-        audio_channel = audio_sample_rate = FIELDS_OTHER_NULL
-        if not master_stream.get("is_null"):
+        # recv_block_count
+        fields['recv_block_count'] = None
+        if not is_master_null:
+            brt_client = master_stream.get('parameters', {}).get('brt_client', {})
+            brtmicro_client = brt_client.get('brtmicro_client', {})
+            recv_val = brtmicro_client.get('recv_block_cnt')
+            if recv_val is not None:
+                try:
+                    fields['recv_block_count'] = float(recv_val)
+                except (ValueError, TypeError):
+                    fields['recv_block_count'] = None
+
+        # video_width
+        fields['video_width'] = None
+        if not is_master_null:
             video_streams = master_stream.get('videoStreams', [{}])
             first_video = video_streams[0] if video_streams else {}
-            video_width = first_video.get('width') if first_video.get('width') is not None else FIELDS_OTHER_NULL
-            video_height = first_video.get('height') if first_video.get('height') is not None else FIELDS_OTHER_NULL
-            video_bitrate = first_video.get('bitRate') if first_video.get('bitRate') is not None else FIELDS_OTHER_NULL
+            width_val = first_video.get('width')
+            if width_val is not None:
+                try:
+                    fields['video_width'] = float(width_val)
+                except (ValueError, TypeError):
+                    fields['video_width'] = None
 
+        # video_height
+        fields['video_height'] = None
+        if not is_master_null:
+            video_streams = master_stream.get('videoStreams', [{}])
+            first_video = video_streams[0] if video_streams else {}
+            height_val = first_video.get('height')
+            if height_val is not None:
+                try:
+                    fields['video_height'] = float(height_val)
+                except (ValueError, TypeError):
+                    fields['video_height'] = None
+
+        # 补充同类型字段（float）
+        fields['video_bitrate'] = None
+        if not is_master_null:
+            video_streams = master_stream.get('videoStreams', [{}])
+            first_video = video_streams[0] if video_streams else {}
+            bitrate_val = first_video.get('bitRate')
+            if bitrate_val is not None:
+                try:
+                    fields['video_bitrate'] = float(bitrate_val)
+                except (ValueError, TypeError):
+                    fields['video_bitrate'] = None
+
+        fields['audio_channel'] = None
+        if not is_master_null:
             audio_streams = master_stream.get('audioStreams', [{}])
             first_audio = audio_streams[0] if audio_streams else {}
-            audio_channel = first_audio.get('channel') if first_audio.get('channel') is not None else FIELDS_OTHER_NULL
-            audio_sample_rate = first_audio.get('sample_rate') if first_audio.get('sample_rate') is not None else FIELDS_OTHER_NULL
+            channel_val = first_audio.get('channel')
+            if channel_val is not None:
+                try:
+                    fields['audio_channel'] = float(channel_val)
+                except (ValueError, TypeError):
+                    fields['audio_channel'] = None
 
-        # 转发服务器心跳时间（空值→"null"）
-        forward_heartbeat_time = FIELDS_OTHER_NULL
-        if not fwd_stream.get("is_null"):
-            forward_params = fwd_stream.get('parameters', {})
-            heartbeat_val = forward_params.get('last_heartbeat_us_time')
-            if heartbeat_val is not None and heartbeat_val != "":
-                forward_heartbeat_time = f"{str(heartbeat_val).replace(' ', 'T')}Z"
-            else:
-                forward_heartbeat_time = FIELDS_OTHER_NULL
+        fields['audio_sample_rate'] = None
+        if not is_master_null:
+            audio_streams = master_stream.get('audioStreams', [{}])
+            first_audio = audio_streams[0] if audio_streams else {}
+            sample_rate_val = first_audio.get('sample_rate')
+            if sample_rate_val is not None:
+                try:
+                    fields['audio_sample_rate'] = float(sample_rate_val)
+                except (ValueError, TypeError):
+                    fields['audio_sample_rate'] = None
 
+        # -------------------------- 4. 返回InfluxDB格式数据 --------------------------
         return {
             "measurement": measurementname,
             "tags": {
@@ -179,25 +253,9 @@ def process_stream_element(measurementname, element, timestamp):
                 "forward_server_id": forward_server_id,
             },
             "time": timestamp,
-            "fields": {
-                "video_codec": video_codec,
-                "audio_codec": audio_codec,
-                "master_status_code": master_status_code,
-                "master_status": master_status,
-                "fwd_status": fwd_status,
-                "master_bandwidth": master_bandwidth,
-                "fwd_bandwidth": fwd_bandwidth,
-                "avg_rtt": avg_rtt,
-                "drop_block_count": drop_block_count,
-                "recv_block_count": recv_block_count,
-                "video_width": video_width,
-                "video_height": video_height,
-                "video_bitrate": video_bitrate,
-                "audio_channel": audio_channel,
-                "audio_sample_rate": audio_sample_rate,
-                "forward_heartbeat_time": forward_heartbeat_time
-            }
+            "fields": fields
         }
+
     except Exception as e:
         logger.warning(
             f"处理单条流数据失败: {str(e)} | "
