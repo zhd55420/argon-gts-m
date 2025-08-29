@@ -126,8 +126,8 @@ def process_stream_element(measurementname, element, timestamp):
                 fields['forward_heartbeat_time'] = f"{str(heartbeat_val).replace(' ', 'T')}Z"
 
         # 3.2 布尔型状态字段
-        fields['master_status'] = FIELDS_STATUS_NULL if is_master_null else bool(master_stream)
-        fields['fwd_status'] = FIELDS_STATUS_NULL if is_fwd_null else bool(fwd_stream)
+        fields['master_status'] = FIELDS_STATUS_NULL if is_master_null else bool(master_stream.get('status'))
+        fields['fwd_status'] = FIELDS_STATUS_NULL if is_fwd_null else bool(fwd_stream.get('status'))
 
         # 3.3 指定float类型字段（空值传None，有值强制转float）
         # master_bandwidth
@@ -141,14 +141,14 @@ def process_stream_element(measurementname, element, timestamp):
                     fields['master_bandwidth'] = None
 
         # transcode_bandwidth (fwd_bandwidth)
-        fields['transcode_bandwidth'] = None
+        fields['fwd_bandwidth'] = None
         if not is_fwd_null:
             tc_bw_val = fwd_stream.get('bw')
             if tc_bw_val is not None:
                 try:
-                    fields['transcode_bandwidth'] = float(tc_bw_val)
+                    fields['fwd_bandwidth'] = float(tc_bw_val)
                 except (ValueError, TypeError):
-                    fields['transcode_bandwidth'] = None
+                    fields['fwd_bandwidth'] = None
 
         # avg_rtt（微秒转毫秒）
         fields['avg_rtt'] = None
