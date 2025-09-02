@@ -126,8 +126,18 @@ def process_stream_element(measurementname, element, timestamp):
                 fields['forward_heartbeat_time'] = f"{str(heartbeat_val).replace(' ', 'T')}Z"
 
         # 3.2 布尔型状态字段
-        fields['master_status'] = FIELDS_STATUS_NULL if is_master_null else bool(master_stream.get('status'))
-        fields['fwd_status'] = FIELDS_STATUS_NULL if is_fwd_null else bool(fwd_stream.get('status'))
+        if is_master_null:
+            fields['master_status'] = FIELDS_STATUS_NULL
+        else:
+            master_status_val = master_stream.get('status')
+            fields['master_status'] = False if master_status_val == 1 else True if master_status_val == 0 else False
+
+        # fwd_status处理
+        if is_fwd_null:
+            fields['fwd_status'] = FIELDS_STATUS_NULL
+        else:
+            fwd_status_val = fwd_stream.get('status')
+            fields['fwd_status'] = False if fwd_status_val == 1 else True if fwd_status_val == 0 else False
 
         # 3.3 指定float类型字段（空值传None，有值强制转float）
         # master_bandwidth
@@ -488,5 +498,4 @@ def all_goose_stream_tasks2():
         "http://54.237.33.107:2082/api/rapidStreamStatus/query/v1",
         "goose_rapid_stream_status_test"
     )
-
 
