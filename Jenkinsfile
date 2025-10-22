@@ -2,7 +2,7 @@
 pipeline {
     agent {
         docker {
-            image 'python:3.9-slim'  // 使用官方 Python 镜像
+            image 'python:3.8'  // 使用官方 Python 镜像
             args '-u root:root --privileged'  // 以 root 用户运行，避免权限问题
         }
     }
