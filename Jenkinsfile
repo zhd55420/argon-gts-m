@@ -8,7 +8,7 @@ pipeline {
     
     environment {
         AWS_REGION = 'us-east-1'
-        ECR_REPOSITORY = '123456789012.dkr.ecr.us-east-1.amazonaws.com/my-django-app-dev'
+        ECR_REPOSITORY = '053735103612.dkr.ecr.us-east-1.amazonaws.com/my-django-app-dev'
         IMAGE_TAG = 'latest'
     }
     
