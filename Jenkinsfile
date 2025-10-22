@@ -1,15 +1,13 @@
-// 修复后的 Jenkinsfile - 使用 Docker 代理
 pipeline {
     agent {
         docker {
-            image 'python:3.8'  // 使用官方 Python 镜像
-            args '-u root:root --privileged'  // 以 root 用户运行，避免权限问题
+            image 'python:3.9'
+            args '-u root:root'
         }
     }
     
     environment {
         AWS_REGION = 'us-east-1'
-        // 使用你的实际 ECR 仓库 URL
         ECR_REPOSITORY = '123456789012.dkr.ecr.us-east-1.amazonaws.com/my-django-app-dev'
         IMAGE_TAG = 'latest'
     }
@@ -17,17 +15,35 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                echo '从 Git 仓库拉取代码...'
                 checkout scm
+            }
+        }
+        
+        stage('Install System Dependencies') {
+            steps {
+                sh '''
+                    echo "安装系统构建工具和 AWS CLI..."
+                    apt-get update
+                    apt-get install -y gcc g++ python3-dev curl unzip
+                    
+                    # 安装 AWS CLI v2
+                    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+                    unzip awscliv2.zip
+                    ./aws/install
+                    rm -rf awscliv2.zip ./aws
+                    
+                    # 验证安装
+                    aws --version
+                    echo "构建工具和 AWS CLI 安装完成"
+                '''
             }
         }
         
         stage('Test') {
             steps {
-                echo '安装依赖和运行测试...'
                 sh '''
                     python --version
-                    pip --version
+                    pip install --upgrade pip
                     pip install -r requirements.txt
                     python manage.py test --noinput
                 '''
@@ -36,18 +52,15 @@ pipeline {
         
         stage('Build Docker Image') {
             steps {
-                echo '构建 Docker 镜像...'
                 sh '''
-                    docker --version
                     docker build -t ${ECR_REPOSITORY}:${IMAGE_TAG} .
-                    docker images | grep ${ECR_REPOSITORY}
+                    echo "镜像构建完成: ${ECR_REPOSITORY}:${IMAGE_TAG}"
                 '''
             }
         }
         
         stage('Push to ECR') {
             steps {
-                echo '推送镜像到 ECR...'
                 withCredentials([
                     string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
                     string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
@@ -57,14 +70,21 @@ pipeline {
                         aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
                         aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
                         aws configure set region $AWS_REGION
+                        aws configure set output json
+                        
+                        # 验证 AWS 配置
+                        echo "验证 AWS 身份..."
+                        aws sts get-caller-identity
                         
                         # 登录 ECR
+                        echo "登录到 ECR..."
                         aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REPOSITORY
                         
                         # 推送镜像
+                        echo "推送镜像到 ECR..."
                         docker push $ECR_REPOSITORY:$IMAGE_TAG
                         
-                        echo "✅ 镜像已推送到: $ECR_REPOSITORY:$IMAGE_TAG"
+                        echo "✅ 镜像已成功推送到: $ECR_REPOSITORY:$IMAGE_TAG"
                     '''
                 }
             }
@@ -73,7 +93,6 @@ pipeline {
     
     post {
         always {
-            echo '清理工作空间...'
             cleanWs()
         }
         success {
